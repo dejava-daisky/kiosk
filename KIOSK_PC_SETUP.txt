@@ -1,130 +1,221 @@
 키오스크 PC 설치 및 실행 설명서 - Windows CMD 기준
 =================================================
 
-이 문서는 Windows 키오스크 PC에서 cmd.exe를 열고 그대로 따라 치는 것을 기준으로 작성했습니다.
+이 문서는 "키오스크 PC에 아무것도 설치되어 있지 않다"는 전제로 작성했습니다.
+Windows에서 Git, Docker Desktop을 설치하고 GitLab에서 프로젝트를 내려받아 실행합니다.
 
-목표
-----
-키오스크 PC에 Git과 Docker Desktop을 설치한 뒤,
-GitHub에서 프로젝트를 내려받고 Docker Compose로 실행합니다.
+최종 목표:
 
-실행 후 키오스크 PC만 켜져 있으면 앱 서버와 MySQL DB가 같이 동작합니다.
+    http://localhost:703/kiosk
 
-
-1. 먼저 설치해야 하는 프로그램
-------------------------------
-
-아래 2개를 설치합니다.
-
-1) Git for Windows
-   https://git-scm.com/download/win
-
-2) Docker Desktop
-   https://www.docker.com/products/docker-desktop/
-
-설치 후 Docker Desktop을 한 번 실행해 둡니다.
-처음 실행 시 WSL 설치나 재부팅을 요구할 수 있습니다.
-안내대로 진행합니다.
+위 주소로 키오스크 화면을 여는 것입니다.
 
 
-2. CMD 열기
+0. 전체 흐름
 -----------
 
-Windows에서:
+키오스크 PC에서 할 일은 아래 순서입니다.
 
-    시작 메뉴 > cmd 검색 > 명령 프롬프트 실행
+    1) Git 설치
+    2) Docker Desktop 설치
+    3) Docker Desktop 실행 확인
+    4) GitLab에서 프로젝트 다운로드
+    5) docker compose up -d 실행
+    6) 브라우저에서 http://localhost:703/kiosk 열기
 
-또는:
 
-    Win + R
-    cmd
-    Enter
+1. Git 설치
+-----------
+
+1) 브라우저를 열고 아래 주소로 이동합니다.
+
+    https://git-scm.com/download/win
+
+2) 다운로드가 자동으로 시작됩니다.
+
+3) 다운로드된 설치 파일을 실행합니다.
+   파일 이름 예:
+
+    Git-2.xx.x-64-bit.exe
+
+4) 설치 과정에서는 대부분 기본값 그대로 Next를 누르면 됩니다.
+
+5) 설치가 끝나면 cmd를 새로 열고 아래 명령어로 확인합니다.
+
+    git --version
+
+정상 예:
+
+    git version 2.45.0.windows.1
+
+위처럼 버전이 나오면 Git 설치 완료입니다.
 
 
-3. 바탕화면으로 이동
+2. Docker Desktop 설치
+----------------------
+
+1) 브라우저를 열고 아래 주소로 이동합니다.
+
+    https://www.docker.com/products/docker-desktop/
+
+2) Download for Windows 버튼을 눌러 Docker Desktop 설치 파일을 받습니다.
+
+3) 다운로드된 설치 파일을 실행합니다.
+   파일 이름 예:
+
+    Docker Desktop Installer.exe
+
+4) 설치 옵션 화면이 나오면 기본값으로 둡니다.
+
+   보통 아래 옵션이 체크되어 있습니다.
+
+    Use WSL 2 instead of Hyper-V
+
+   그대로 둡니다.
+
+5) 설치를 진행합니다.
+
+6) 설치 후 재부팅을 요구하면 재부팅합니다.
+
+7) 재부팅 후 Docker Desktop을 실행합니다.
+
+8) 처음 실행할 때 약관 동의 화면이 나오면 Accept를 누릅니다.
+
+9) Docker Desktop이 WSL 설치 또는 업데이트를 요구할 수 있습니다.
+   안내가 나오면 그대로 진행합니다.
+
+10) Docker Desktop 왼쪽 아래 또는 하단 상태가 Running이 될 때까지 기다립니다.
+
+
+3. Docker 설치 확인
 -------------------
 
-cmd에서 아래 명령어를 입력합니다.
+cmd를 새로 엽니다.
 
-    cd /d %USERPROFILE%\Desktop
-
-
-4. 프로젝트 다운로드
---------------------
-
-GitHub에서 프로젝트를 내려받습니다.
-
-    git clone https://github.com/dejava-daisky/kiosk.git
-
-프로젝트 폴더로 이동합니다.
-
-    cd kiosk
-
-
-5. Docker 실행 확인
--------------------
-
-Docker Desktop이 켜져 있어야 합니다.
-
-cmd에서 아래 명령어를 입력합니다.
+아래 명령어를 입력합니다.
 
     docker --version
 
-정상이라면 Docker 버전이 출력됩니다.
+정상 예:
 
-Docker Compose 확인:
+    Docker version 27.x.x
+
+Docker Compose도 확인합니다.
 
     docker compose version
 
-정상이라면 Docker Compose 버전이 출력됩니다.
+정상 예:
+
+    Docker Compose version v2.x.x
+
+만약 docker 명령어를 찾을 수 없다고 나오면:
+
+    1) Docker Desktop 설치가 끝났는지 확인
+    2) Docker Desktop이 실행 중인지 확인
+    3) cmd를 닫고 새로 열기
+    4) PC 재부팅 후 다시 확인
+
+
+4. GitLab 프로젝트 다운로드
+---------------------------
+
+cmd에서 바탕화면으로 이동합니다.
+
+    cd /d %USERPROFILE%\Desktop
+
+GitLab에서 프로젝트를 내려받습니다.
+
+    git clone https://std-gitlab.kopoctc.kr/kopo05/kioskproj.git
+
+주의:
+GitLab 저장소가 private이면 로그인 정보를 물어볼 수 있습니다.
+
+Username:
+
+    kopo05
+
+Password:
+
+    GitLab Access Token
+
+Keycloak 웹 로그인 비밀번호가 아니라 GitLab에서 만든 Access Token을 넣어야 할 수 있습니다.
+
+다운로드가 끝나면 폴더로 이동합니다.
+
+    cd kioskproj
+
+
+5. 프로젝트 파일 확인
+--------------------
+
+아래 명령어를 입력합니다.
+
+    dir
+
+아래 파일들이 보이면 정상입니다.
+
+    docker-compose.yml
+    Dockerfile
+    server.js
+    kiosk.html
+    insert.html
+    schema.sql
+    package.json
 
 
 6. 서버와 DB 실행
 -----------------
 
-프로젝트 폴더 안에서 아래 명령어를 입력합니다.
+프로젝트 폴더 안에서 아래 명령어를 실행합니다.
 
     docker compose up -d
 
-처음 실행할 때는 Node 이미지와 MySQL 이미지를 다운로드하므로 시간이 걸릴 수 있습니다.
+처음 실행할 때는 시간이 걸립니다.
+이유는 Docker가 아래 이미지를 다운로드하고 빌드하기 때문입니다.
 
-실행 상태 확인:
+    Node.js 이미지
+    MySQL 이미지
+    프로젝트 app 이미지
+
+실행 상태를 확인합니다.
 
     docker compose ps
 
-app, db가 실행 중이면 정상입니다.
+정상이라면 app, db 두 개가 Up 상태로 보입니다.
 
 
 7. 화면 열기
 -----------
 
-키오스크 화면:
+키오스크 화면을 엽니다.
 
     start http://localhost:703/kiosk
 
-진행상황 입력 화면:
+진행상황 입력 화면을 엽니다.
 
     start http://localhost:703/insert
 
 
-8. 다른 PC나 태블릿에서 접속하기
---------------------------------
+8. 다른 기기에서 접속하기
+-------------------------
 
-먼저 키오스크 PC의 IP를 확인합니다.
+다른 PC나 태블릿에서 키오스크 PC에 접속하려면 키오스크 PC의 IP가 필요합니다.
+
+cmd에서 아래 명령어를 입력합니다.
 
     ipconfig
 
-출력에서 IPv4 주소를 찾습니다.
+IPv4 주소를 찾습니다.
 
 예:
 
     IPv4 Address . . . . . . . . . . . : 192.168.23.201
 
-다른 PC나 태블릿 브라우저에서 아래처럼 접속합니다.
+다른 기기 브라우저에서 아래처럼 접속합니다.
 
     http://192.168.23.201:703/kiosk
 
-입력 화면은:
+진행상황 입력 화면:
 
     http://192.168.23.201:703/insert
 
@@ -132,16 +223,21 @@ app, db가 실행 중이면 정상입니다.
 9. 진행상황 입력 방법
 --------------------
 
-브라우저에서 입력 화면을 엽니다.
+입력 화면:
 
     http://localhost:703/insert
 
 입력 항목:
 
-    본인 ID: kopo01 같은 사용자 ID
-    진행상황: 드롭다운에서 선택
+    본인 ID
+    진행상황
 
-진행상황 값:
+예:
+
+    본인 ID: kopo01
+    진행상황: 프로토타입
+
+진행상황 목록:
 
     기획
     프로토타입
@@ -149,13 +245,13 @@ app, db가 실행 중이면 정상입니다.
     최종 테스트
     완료
 
-같은 ID로 다시 저장하면 기존 값이 새 진행상황으로 업데이트됩니다.
+같은 ID로 다시 저장하면 새 진행상황으로 업데이트됩니다.
 
 
 10. 키오스크 화면 사용
 ---------------------
 
-브라우저에서 키오스크 화면을 엽니다.
+키오스크 화면:
 
     http://localhost:703/kiosk
 
@@ -165,50 +261,53 @@ app, db가 실행 중이면 정상입니다.
 11. 서버 종료
 -------------
 
-프로젝트 폴더에서 아래 명령어를 입력합니다.
+프로젝트 폴더에서 아래 명령어를 실행합니다.
 
     docker compose down
 
-이 명령은 컨테이너만 종료합니다.
+이 명령어는 app, db 컨테이너를 종료합니다.
 DB 데이터는 유지됩니다.
 
 
 12. DB 데이터까지 삭제
 ---------------------
 
-주의: 입력했던 student 데이터가 삭제됩니다.
+주의:
+아래 명령어는 입력된 student 데이터를 모두 삭제합니다.
 
     docker compose down -v
 
+일반 종료에는 이 명령어를 쓰지 마세요.
 
-13. 키오스크 PC 재부팅 후 다시 실행
-----------------------------------
+
+13. 키오스크 PC를 껐다 켠 뒤 다시 실행
+-------------------------------------
 
 cmd를 열고 프로젝트 폴더로 이동합니다.
 
-    cd /d %USERPROFILE%\Desktop\kiosk
+    cd /d %USERPROFILE%\Desktop\kioskproj
 
-다시 실행합니다.
+서버와 DB를 다시 실행합니다.
 
     docker compose up -d
 
-브라우저 열기:
+키오스크 화면을 엽니다.
 
     start http://localhost:703/kiosk
 
 
-14. GitHub에서 최신 버전 받기
------------------------------
+14. 최신 코드로 업데이트
+------------------------
 
 프로젝트 폴더로 이동합니다.
 
-    cd /d %USERPROFILE%\Desktop\kiosk
+    cd /d %USERPROFILE%\Desktop\kioskproj
 
-최신 코드 받기:
+GitLab에서 최신 코드를 받습니다.
 
     git pull
 
-다시 빌드해서 실행:
+Docker 이미지를 다시 빌드하고 실행합니다.
 
     docker compose up -d --build
 
@@ -232,28 +331,40 @@ DB 로그:
 
     docker compose logs
 
+최근 로그만 계속 보기:
+
+    docker compose logs -f
+
+로그 보기 종료:
+
+    Ctrl + C
+
 
 16. 자주 생기는 문제
 --------------------
 
-문제: docker 명령어를 찾을 수 없다고 나옴
+문제 1:
+docker 명령어를 찾을 수 없다고 나옴
 
 해결:
 Docker Desktop이 설치되어 있는지 확인합니다.
-설치 후 cmd를 새로 열어 다시 실행합니다.
+Docker Desktop을 실행합니다.
+cmd를 닫고 새로 엽니다.
 
 
-문제: Docker Desktop is not running 같은 메시지가 나옴
-
-해결:
-Docker Desktop을 실행한 뒤 다시 명령어를 입력합니다.
-
-
-문제: 703 포트가 이미 사용 중이라고 나옴
+문제 2:
+Docker Desktop is not running 메시지가 나옴
 
 해결:
-다른 프로그램이 703 포트를 사용 중일 수 있습니다.
-우선 기존 컨테이너를 종료합니다.
+Docker Desktop을 실행한 뒤 Running 상태가 될 때까지 기다립니다.
+그 다음 다시 명령어를 입력합니다.
+
+
+문제 3:
+703 포트가 이미 사용 중이라고 나옴
+
+해결:
+기존 컨테이너를 종료합니다.
 
     docker compose down
 
@@ -262,13 +373,27 @@ Docker Desktop을 실행한 뒤 다시 명령어를 입력합니다.
     docker compose up -d
 
 
-문제: 화면은 뜨는데 데이터가 안 보임
+문제 4:
+화면은 뜨는데 데이터가 안 보임
 
-확인:
+확인 명령어:
 
     docker compose ps
     docker compose logs app
     docker compose logs db
+
+
+문제 5:
+git clone 할 때 로그인 실패
+
+해결:
+GitLab Access Token을 사용합니다.
+
+Username에는 GitLab 사용자 ID를 입력합니다.
+
+    kopo05
+
+Password에는 GitLab 비밀번호가 아니라 Access Token을 입력합니다.
 
 
 17. 전체 명령어 요약
@@ -277,8 +402,8 @@ Docker Desktop을 실행한 뒤 다시 명령어를 입력합니다.
 처음 설치 후 실행:
 
     cd /d %USERPROFILE%\Desktop
-    git clone https://github.com/dejava-daisky/kiosk.git
-    cd kiosk
+    git clone https://std-gitlab.kopoctc.kr/kopo05/kioskproj.git
+    cd kioskproj
     docker compose up -d
     start http://localhost:703/kiosk
 
@@ -292,7 +417,13 @@ Docker Desktop을 실행한 뒤 다시 명령어를 입력합니다.
 
 다시 실행:
 
-    cd /d %USERPROFILE%\Desktop\kiosk
+    cd /d %USERPROFILE%\Desktop\kioskproj
     docker compose up -d
     start http://localhost:703/kiosk
+
+업데이트:
+
+    cd /d %USERPROFILE%\Desktop\kioskproj
+    git pull
+    docker compose up -d --build
 
