@@ -192,8 +192,16 @@ tr:last-child td {
 
 .modal-actions {
   display: flex;
+  align-items: center;
+  gap: 12px;
   justify-content: flex-end;
   margin-top: 22px;
+}
+
+.modal-countdown {
+  color: var(--muted);
+  font-size: 18px;
+  font-weight: 900;
 }
 
 button {

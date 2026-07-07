@@ -38,10 +38,8 @@
         <div class="progress-fill" id="modalProgressFill"></div>
       </div>
       <div class="modal-actions">
+        <span class="modal-countdown" id="modalCountdown">(10초)</span>
         <button id="closeModalButton" type="button">닫기</button>
-
-
-        
       </div>
     </div>
   </div>
@@ -129,16 +127,43 @@
     const modalStudentId = document.getElementById("modalStudentId");
     const modalStudentProgress = document.getElementById("modalStudentProgress");
     const modalProgressFill = document.getElementById("modalProgressFill");
+    const modalCountdown = document.getElementById("modalCountdown");
     const studentsTable = document.getElementById("students");
+    let modalTimer = null;
+    let modalRemainingSeconds = 10;
+
+    function stopModalTimer() {
+      if (modalTimer) {
+        clearInterval(modalTimer);
+        modalTimer = null;
+      }
+    }
+
+    function startModalTimer() {
+      stopModalTimer();
+      modalRemainingSeconds = 10;
+      modalCountdown.textContent = `(${modalRemainingSeconds}초)`;
+
+      modalTimer = setInterval(() => {
+        modalRemainingSeconds -= 1;
+        modalCountdown.textContent = `(${modalRemainingSeconds}초)`;
+
+        if (modalRemainingSeconds <= 0) {
+          closeStudentModal();
+        }
+      }, 1000);
+    }
 
     function openStudentModal(row) {
       modalStudentId.textContent = row.dataset.id;
       modalStudentProgress.textContent = row.dataset.progress;
       modalProgressFill.style.width = `${row.dataset.percent}%`;
       modal.classList.add("open");
+      startModalTimer();
     }
 
     function closeStudentModal() {
+      stopModalTimer();
       modal.classList.remove("open");
     }
 
