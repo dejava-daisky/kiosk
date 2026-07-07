@@ -1,0 +1,69 @@
+body * {
+  visibility: hidden;
+}
+
+.modal_body,
+.modal_body * {
+  visibility: visible;
+}
+
+.modal {
+  display: block;
+  position: static;
+  padding: 0;
+  background: white;
+}
+
+.modal_body {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 80mm;
+  padding: 8mm;
+  color: #000;
+  background: white;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.modal_body h2 {
+  margin: 0 0 6mm;
+  color: #000;
+  font-size: 14pt;
+}
+
+.student-id {
+  margin: 0 0 5mm;
+  color: #000;
+  font-size: 24pt;
+  font-weight: 900;
+}
+
+.student-progress {
+  margin: 0;
+  padding: 0;
+  color: #000;
+  background: white;
+  border: 0;
+  font-size: 18pt;
+  font-weight: 800;
+}
+
+.progress-bar {
+  visibility: visible;
+  width: 100%;
+  height: 6mm;
+  margin-top: 5mm;
+  border: 1px solid #000;
+}
+
+.progress-fill {
+  visibility: visible;
+  height: 100%;
+  background: #000;
+}
+
+.modal-actions {
+  display: none;
+}

@@ -1,0 +1,11 @@
+{
+  "scripts": {
+    "test": "node --test",
+    "start": "node server.js",
+    "check:db": "node scripts/check-db.js"
+  },
+  "dependencies": {
+    "mysql2": "^3.11.5"
+  },
+  "devDependencies": {}
+}
