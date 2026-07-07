@@ -1,0 +1,6 @@
+node_modules
+.git
+.env
+*.log
+npm-debug.log*
+사용자별 진행 상황.html

@@ -1,0 +1,4 @@
+CREATE TABLE IF NOT EXISTS student (
+    id VARCHAR(50) PRIMARY KEY,
+    progress VARCHAR(100)
+);
