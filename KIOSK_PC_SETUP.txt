@@ -1,0 +1,200 @@
+키오스크 PC 설치 및 실행 설명서
+================================
+
+목표
+----
+키오스크 PC에 프로젝트를 내려받고 Docker Compose로 실행합니다.
+이 방식은 키오스크 PC 안에 앱 서버와 MySQL DB를 같이 띄우므로,
+개발 PC를 꺼도 키오스크 PC만 켜져 있으면 동작합니다.
+
+
+1. 필요한 프로그램 설치
+----------------------
+
+키오스크 PC에 아래 2개를 설치합니다.
+
+1) Git
+   다운로드:
+   https://git-scm.com/download/win
+
+   설치할 때 특별히 바꾸지 말고 기본값으로 진행해도 됩니다.
+
+2) Docker Desktop
+   다운로드:
+   https://www.docker.com/products/docker-desktop/
+
+   설치 후 Docker Desktop을 실행합니다.
+   처음 실행할 때 WSL 관련 설치나 재부팅을 요구할 수 있습니다.
+   요구하면 안내대로 진행합니다.
+
+
+2. 프로젝트 내려받기
+-------------------
+
+PowerShell을 열고 원하는 위치로 이동합니다.
+예시는 바탕화면입니다.
+
+    cd $HOME\Desktop
+
+GitHub에서 프로젝트를 내려받습니다.
+
+    git clone https://github.com/dejava-daisky/kiosk.git
+
+프로젝트 폴더로 들어갑니다.
+
+    cd kiosk
+
+
+3. 서버와 DB 실행
+----------------
+
+아래 명령어를 실행합니다.
+
+    docker compose up -d
+
+처음 실행할 때는 Node 이미지와 MySQL 이미지를 내려받기 때문에 시간이 걸릴 수 있습니다.
+
+실행 상태 확인:
+
+    docker compose ps
+
+app, db 두 개가 실행 중이면 정상입니다.
+
+
+4. 화면 열기
+-----------
+
+키오스크 PC에서 직접 열 때:
+
+    http://localhost:703/kiosk
+
+진행상황 입력 화면:
+
+    http://localhost:703/insert
+
+다른 PC나 태블릿에서 키오스크 PC로 접속할 때:
+
+    http://키오스크PC_IP:703/kiosk
+
+예:
+
+    http://192.168.23.201:703/kiosk
+
+
+5. 키오스크 PC의 IP 확인
+-----------------------
+
+PowerShell에서 아래 명령어를 실행합니다.
+
+    ipconfig
+
+IPv4 주소를 확인합니다.
+예:
+
+    IPv4 Address . . . . . . . . . . . : 192.168.23.201
+
+그러면 다른 기기에서는 아래처럼 접속합니다.
+
+    http://192.168.23.201:703/kiosk
+
+
+6. 진행상황 입력 방법
+--------------------
+
+브라우저에서 아래 주소를 엽니다.
+
+    http://localhost:703/insert
+
+입력 항목:
+
+    본인 ID: kopo01 같은 사용자 ID
+    진행상황: 드롭다운에서 선택
+
+현재 진행상황 값:
+
+    기획
+    프로토타입
+    실제 제작 시작
+    최종 테스트
+    완료
+
+같은 ID로 다시 저장하면 기존 데이터가 새 진행상황으로 업데이트됩니다.
+
+
+7. 종료 방법
+-----------
+
+프로젝트 폴더에서 아래 명령어를 실행합니다.
+
+    docker compose down
+
+이 명령은 컨테이너만 종료합니다.
+DB 데이터는 유지됩니다.
+
+DB 데이터까지 완전히 삭제하려면:
+
+    docker compose down -v
+
+주의:
+down -v를 실행하면 입력했던 student 데이터가 삭제됩니다.
+
+
+8. 다시 실행하기
+----------------
+
+키오스크 PC를 껐다 켠 뒤 다시 실행하려면:
+
+    cd $HOME\Desktop\kiosk
+    docker compose up -d
+
+그 다음 브라우저에서:
+
+    http://localhost:703/kiosk
+
+
+9. 업데이트 방법
+---------------
+
+GitHub에 새 버전이 올라온 경우:
+
+    cd $HOME\Desktop\kiosk
+    git pull
+    docker compose up -d --build
+
+
+10. 문제가 생겼을 때
+-------------------
+
+상태 확인:
+
+    docker compose ps
+
+로그 확인:
+
+    docker compose logs app
+    docker compose logs db
+
+포트가 이미 사용 중이라는 오류가 나면,
+703 포트를 다른 프로그램이 쓰고 있을 수 있습니다.
+
+Docker Desktop이 켜져 있는지도 확인합니다.
+
+
+11. 현재 구조
+------------
+
+Docker Compose 안에는 두 개가 실행됩니다.
+
+    app: Node.js 서버
+    db : MySQL 서버
+
+브라우저는 app에 접속합니다.
+app은 db에서 student 테이블을 읽고 씁니다.
+
+DB 테이블:
+
+    CREATE TABLE student (
+        id VARCHAR(50) PRIMARY KEY,
+        progress VARCHAR(100)
+    );
+
