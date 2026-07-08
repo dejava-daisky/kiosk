@@ -272,6 +272,11 @@ h1 {
   cursor: not-allowed;
 }
 
+.mockup-link-button.warning {
+  color: white;
+  background: #c45628;
+}
+
 .latest-update {
   display: inline-block;
   margin-left: 8px;

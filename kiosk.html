@@ -120,7 +120,9 @@
     let activeProjectId = null;
     let activeProjectProgress = "";
     let activeDeploymentUrl = "";
+    let activeFrameStatus = null;
     let currentDeadline = "2026-07-31";
+    const frameCheckCache = new Map();
     const recommendedPhases = [
       "기획",
       "프로토타입",
@@ -159,6 +161,65 @@
       }
 
       return `/api/frame-check?url=${encodedUrl}`;
+    }
+
+    async function checkFrameStatus(targetUrl) {
+      if (!targetUrl) {
+        return { frameAllowed: false, reason: "링크가 없습니다." };
+      }
+
+      if (frameCheckCache.has(targetUrl)) {
+        return frameCheckCache.get(targetUrl);
+      }
+
+      const statusRequest = readJson(await fetch(getFrameCheckApiUrl(targetUrl)))
+        .then((data) => ({
+          frameAllowed: Boolean(data.frameAllowed),
+          reason: data.reason || ""
+        }))
+        .catch((error) => ({
+          frameAllowed: false,
+          reason: `iframe 확인 실패: ${error.message}`
+        }));
+
+      frameCheckCache.set(targetUrl, statusRequest);
+      const status = await statusRequest;
+      frameCheckCache.set(targetUrl, status);
+      return status;
+    }
+
+    async function attachFrameStatuses(projects) {
+      return Promise.all(projects.map(async (project) => ({
+        ...project,
+        frameStatus: project.deploymentUrl ? await checkFrameStatus(project.deploymentUrl) : null
+      })));
+    }
+
+    function getMockupButtonLabel(project) {
+      if (!project.deploymentUrl) return "링크 없음";
+      if (project.frameStatus && project.frameStatus.frameAllowed === false) return "새 창에서 열기";
+      return "목업 보기";
+    }
+
+    function getMockupButtonClass(project) {
+      if (project.frameStatus && project.frameStatus.frameAllowed === false) {
+        return "mockup-link-button warning";
+      }
+
+      return "mockup-link-button";
+    }
+
+    function applyDeploymentButtonStatus(frameStatus) {
+      if (!activeDeploymentUrl) return;
+
+      if (frameStatus && frameStatus.frameAllowed === false) {
+        openDeploymentButton.textContent = "새 창에서 열기";
+        openDeploymentButton.classList.add("warning");
+        return;
+      }
+
+      openDeploymentButton.textContent = "배포판 목업 열기";
+      openDeploymentButton.classList.remove("warning");
     }
 
     function escapeHtml(value) {
@@ -294,8 +355,8 @@
       try {
         const response = await fetch(getProjectsApiUrl());
         const data = await readJson(response);
-        latestProjects = data.projects;
-        latestUsers = groupProjectsByStudent(data.projects);
+        latestProjects = await attachFrameStatuses(data.projects);
+        latestUsers = groupProjectsByStudent(latestProjects);
 
         projectsTable.innerHTML = latestUsers.map((user, index) => `
           <article class="user-row" tabindex="0" data-index="${index}">
@@ -315,18 +376,18 @@
                     <span>${escapeHtml(formatUpdatedHour(project.updatedAt))}</span>
                   </div>
                   <button
-                    class="mockup-link-button"
+                    class="${getMockupButtonClass(project)}"
                     type="button"
                     data-mockup-url="${escapeHtml(project.deploymentUrl || "")}"
                     ${project.deploymentUrl ? "" : "disabled"}
-                  >${project.deploymentUrl ? "목업 보기" : "링크 없음"}</button>
+                  >${escapeHtml(getMockupButtonLabel(project))}</button>
                 </section>
               `).join("")}
             </div>
           </article>
         `).join("");
 
-        message.textContent = `${latestUsers.length}명 / ${data.projects.length}개 프로젝트 표시 중`;
+        message.textContent = `${latestUsers.length}명 / ${latestProjects.length}개 프로젝트 표시 중`;
       } catch (error) {
         message.textContent = `오류: ${error.message}`;
       }
@@ -401,14 +462,14 @@
       activeProjectId = project.id;
       activeProjectProgress = project.progress || "";
       activeDeploymentUrl = project.deploymentUrl || "";
+      activeFrameStatus = activeDeploymentUrl ? await checkFrameStatus(activeDeploymentUrl) : null;
       modalStudentId.textContent = project.studentId;
       modalProjectName.textContent = project.projectName;
       modalProjectProgress.textContent = `지금 진행중인 ${project.projectName}: 진행상황 ${project.progress}`;
       renderRecommendedSchedule();
       deploymentBlock.hidden = !activeDeploymentUrl;
       deploymentUrlText.textContent = activeDeploymentUrl;
-      openDeploymentButton.textContent = "배포판 목업 열기";
-      openDeploymentButton.classList.remove("warning");
+      applyDeploymentButtonStatus(activeFrameStatus);
       modalProfessorFeedback.textContent = project.professorFeedback || "아직 입력된 피드백이 없습니다.";
       renderComments(project.comments);
       commentAuthorInput.value = "";
@@ -436,24 +497,23 @@
       modal.classList.remove("open");
       activeProjectId = null;
       activeProjectProgress = "";
+      activeFrameStatus = null;
     }
 
     async function openDeploymentPreview() {
       if (!activeDeploymentUrl) return;
 
       try {
-        const data = await readJson(await fetch(getFrameCheckApiUrl(activeDeploymentUrl)));
+        const frameStatus = activeFrameStatus || await checkFrameStatus(activeDeploymentUrl);
+        activeFrameStatus = frameStatus;
+        applyDeploymentButtonStatus(frameStatus);
 
-        if (!data.frameAllowed) {
-          openDeploymentButton.textContent = "새 창에서 열기";
-          openDeploymentButton.classList.add("warning");
+        if (!frameStatus.frameAllowed) {
           window.open(activeDeploymentUrl, "_blank", "noopener");
-          message.textContent = data.reason || "iframe에서 열리지 않아 새 창으로 열었습니다.";
+          message.textContent = frameStatus.reason || "iframe에서 열리지 않아 새 창으로 열었습니다.";
           return;
         }
 
-        openDeploymentButton.textContent = "배포판 목업 열기";
-        openDeploymentButton.classList.remove("warning");
         deploymentPreviewTitle.textContent = `${modalProjectName.textContent} 배포판 목업`;
         deploymentFrame.src = activeDeploymentUrl;
         deploymentPreview.classList.add("open");
