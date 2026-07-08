@@ -178,7 +178,8 @@
           reason: data.reason || ""
         }))
         .catch((error) => ({
-          frameAllowed: false,
+          checked: false,
+          frameAllowed: true,
           reason: `iframe 확인 실패: ${error.message}`
         }));
 

@@ -13,6 +13,7 @@ const {
 } = require("./db");
 const { validateProjectInput, validateProjectCommentInput } = require("./project-input");
 const { validateDeadlineInput } = require("./schedule");
+const { checkFrameAvailability } = require("./frame-check");
 
 const port = Number(process.env.PORT || 3000);
 
@@ -44,63 +45,6 @@ async function readJson(req) {
 
   const text = Buffer.concat(chunks).toString("utf8");
   return text ? JSON.parse(text) : {};
-}
-
-function isHttpUrl(value) {
-  try {
-    const parsedUrl = new URL(value);
-    return parsedUrl.protocol === "http:" || parsedUrl.protocol === "https:";
-  } catch (error) {
-    return false;
-  }
-}
-
-async function checkFrameAvailability(targetUrl) {
-  if (!isHttpUrl(targetUrl)) {
-    return { ok: false, frameAllowed: false, reason: "올바른 URL이 아닙니다." };
-  }
-
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 5000);
-
-  try {
-    let response = await fetch(targetUrl, {
-      method: "HEAD",
-      redirect: "follow",
-      signal: controller.signal
-    });
-
-    if (!response.ok && response.status === 405) {
-      response = await fetch(targetUrl, {
-        method: "GET",
-        redirect: "follow",
-        signal: controller.signal
-      });
-    }
-
-    const xFrameOptions = String(response.headers.get("x-frame-options") || "").toLowerCase();
-    const contentSecurityPolicy = String(response.headers.get("content-security-policy") || "").toLowerCase();
-    const frameAncestorsBlocked = contentSecurityPolicy.includes("frame-ancestors")
-      && !contentSecurityPolicy.includes("frame-ancestors *");
-
-    if (xFrameOptions.includes("deny") || xFrameOptions.includes("sameorigin") || frameAncestorsBlocked) {
-      return {
-        ok: true,
-        frameAllowed: false,
-        reason: "이 사이트는 iframe 표시를 막고 있어 새 창으로 열어야 합니다."
-      };
-    }
-
-    return { ok: true, frameAllowed: true, reason: "" };
-  } catch (error) {
-    return {
-      ok: true,
-      frameAllowed: false,
-      reason: "iframe 가능 여부를 확인하지 못해 새 창으로 여는 것이 안전합니다."
-    };
-  } finally {
-    clearTimeout(timeout);
-  }
 }
 
 const server = http.createServer(async (req, res) => {
