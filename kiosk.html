@@ -26,18 +26,7 @@
 
     <p id="message">불러오는 중...</p>
 
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>사용자</th>
-            <th>프로젝트 수</th>
-            <th>코멘트</th>
-          </tr>
-        </thead>
-        <tbody id="projects"></tbody>
-      </table>
-    </div>
+    <div class="user-list" id="projects"></div>
   </main>
 
   <div class="modal" id="userModal">
@@ -299,16 +288,32 @@
         latestUsers = groupProjectsByStudent(data.projects);
 
         projectsTable.innerHTML = latestUsers.map((user, index) => `
-          <tr tabindex="0" data-index="${index}">
-            <td>${escapeHtml(user.studentId)}</td>
-            <td>
-              <div class="project-cell">
-                <strong>${user.projects.length}개 <span class="latest-update">${escapeHtml(formatUpdatedHour(user.latestUpdatedAt))}</span></strong>
-                <span>${escapeHtml(user.projectNames)}</span>
-              </div>
-            </td>
-            <td class="feedback-cell">${user.latestComment ? escapeHtml(user.latestComment) : "-"}</td>
-          </tr>
+          <article class="user-row" tabindex="0" data-index="${index}">
+            <button class="user-name-button" type="button" data-index="${index}">
+              <strong>${escapeHtml(user.studentId)}</strong>
+              <span>${escapeHtml(formatUpdatedHour(user.latestUpdatedAt))}</span>
+            </button>
+            <div class="project-card-list">
+              ${user.projects.map((project) => `
+                <section class="project-summary-card">
+                  <div class="project-summary-main">
+                    <strong>${escapeHtml(project.projectName)}</strong>
+                    <span>${escapeHtml(project.progress)}</span>
+                  </div>
+                  <div class="project-summary-meta">
+                    ${project.latestComment ? '<span class="comment-badge">코멘트 있음</span>' : '<span class="comment-badge quiet">코멘트 없음</span>'}
+                    <span>${escapeHtml(formatUpdatedHour(project.updatedAt))}</span>
+                  </div>
+                  <button
+                    class="mockup-link-button"
+                    type="button"
+                    data-mockup-url="${escapeHtml(project.deploymentUrl || "")}"
+                    ${project.deploymentUrl ? "" : "disabled"}
+                  >${project.deploymentUrl ? "목업 보기" : "링크 없음"}</button>
+                </section>
+              `).join("")}
+            </div>
+          </article>
         `).join("");
 
         message.textContent = `${latestUsers.length}명 / ${data.projects.length}개 프로젝트 표시 중`;
@@ -437,7 +442,17 @@
     }
 
     projectsTable.addEventListener("click", async (event) => {
-      const row = event.target.closest("tr");
+      const mockupButton = event.target.closest("[data-mockup-url]");
+      if (mockupButton) {
+        event.stopPropagation();
+        const url = mockupButton.dataset.mockupUrl;
+        if (url) {
+          window.open(url, "_blank", "noopener");
+        }
+        return;
+      }
+
+      const row = event.target.closest("[data-index]");
       if (!row) return;
 
       const user = latestUsers[Number(row.dataset.index)];
@@ -452,7 +467,9 @@
 
     projectsTable.addEventListener("keydown", async (event) => {
       if (event.key !== "Enter" && event.key !== " ") return;
-      const row = event.target.closest("tr");
+      if (event.target.closest("[data-mockup-url]")) return;
+
+      const row = event.target.closest("[data-index]");
       if (!row) return;
 
       event.preventDefault();
