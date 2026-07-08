@@ -28,6 +28,17 @@ CREATE TABLE IF NOT EXISTS project_comment (
       ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS project_view_event (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    project_id INT NOT NULL,
+    event_type VARCHAR(40) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_project_view_event_project (project_id),
+    CONSTRAINT fk_project_view_event_project
+      FOREIGN KEY (project_id) REFERENCES student_project(id)
+      ON DELETE CASCADE
+);
+
 CREATE TABLE IF NOT EXISTS app_setting (
     setting_key VARCHAR(80) PRIMARY KEY,
     setting_value TEXT NOT NULL,

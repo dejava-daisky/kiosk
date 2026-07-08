@@ -239,9 +239,23 @@ h1 {
   line-height: 1.2;
 }
 
-.project-summary-main span {
+.project-progress-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.project-progress-line span {
   color: var(--blue);
   font-size: 15px;
+  font-weight: 900;
+}
+
+.project-progress-line em {
+  color: var(--muted);
+  font-size: 12px;
+  font-style: normal;
   font-weight: 900;
 }
 

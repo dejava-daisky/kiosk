@@ -171,6 +171,14 @@
       return `/api/frame-check?url=${encodedUrl}`;
     }
 
+    function getProjectViewApiUrl(projectId) {
+      if (location.protocol === "file:") {
+        return `http://localhost:703/api/projects/${projectId}/views`;
+      }
+
+      return `/api/projects/${projectId}/views`;
+    }
+
     async function checkFrameStatus(targetUrl) {
       if (!targetUrl) {
         return { frameAllowed: false, reason: "링크가 없습니다." };
@@ -229,6 +237,34 @@
 
       openDeploymentButton.textContent = "배포판 목업 열기";
       openDeploymentButton.classList.remove("warning");
+    }
+
+    function formatViewCount(viewCount) {
+      return `조회수 ${Number(viewCount || 0)}회`;
+    }
+
+    function incrementProjectViewCount(projectId) {
+      const project = latestProjects.find((item) => Number(item.id) === Number(projectId));
+      if (!project) return;
+
+      project.viewCount = Number(project.viewCount || 0) + 1;
+      document.querySelectorAll(`[data-view-count-project-id="${projectId}"]`).forEach((element) => {
+        element.textContent = formatViewCount(project.viewCount);
+      });
+    }
+
+    async function recordProjectView(projectId, eventType) {
+      try {
+        const response = await fetch(getProjectViewApiUrl(projectId), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ eventType })
+        });
+        await readJson(response);
+        incrementProjectViewCount(projectId);
+      } catch (error) {
+        console.log(`조회수 기록 실패: ${error.message}`);
+      }
     }
 
     function escapeHtml(value) {
@@ -378,7 +414,10 @@
                 <section class="project-summary-card">
                   <div class="project-summary-main">
                     <strong>${escapeHtml(project.projectName)}</strong>
-                    <span>${escapeHtml(project.progress)}</span>
+                    <div class="project-progress-line">
+                      <span>${escapeHtml(project.progress)}</span>
+                      <em data-view-count-project-id="${project.id}">${escapeHtml(formatViewCount(project.viewCount))}</em>
+                    </div>
                   </div>
                   <div class="project-summary-meta">
                     ${project.latestComment ? '<span class="comment-badge">코멘트 있음</span>' : '<span class="comment-badge quiet">코멘트 없음</span>'}
@@ -502,6 +541,7 @@
       commentAuthorInput.value = "";
       commentInput.value = "";
       modal.classList.add("open");
+      recordProjectView(project.id, "detail_view");
     }
 
     function openUserModal(user) {
@@ -542,11 +582,13 @@
 
         if (!frameStatus.frameAllowed) {
           window.open(project.deploymentUrl, "_blank", "noopener");
+          recordProjectView(project.id, "external_open");
           message.textContent = frameStatus.reason || "iframe에서 열리지 않아 새 창으로 열었습니다.";
           return;
         }
 
         openDeploymentFrame(`${project.projectName} 배포판 목업`, project.deploymentUrl);
+        recordProjectView(project.id, "mockup_view");
       } catch (error) {
         message.textContent = `iframe 확인 실패: ${error.message}`;
       }
@@ -557,6 +599,7 @@
 
       const project = {
         projectName: modalProjectName.textContent,
+        id: activeProjectId,
         deploymentUrl: activeDeploymentUrl,
         frameStatus: activeFrameStatus
       };

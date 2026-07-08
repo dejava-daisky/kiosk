@@ -10,9 +10,11 @@ const {
   updateProjectById,
   deleteProjectById,
   updateProjectScreenshotPath,
+  addProjectViewEvent,
   addProjectComment
 } = require("./db");
 const { validateProjectInput, validateProjectCommentInput } = require("./project-input");
+const { validateProjectViewEventInput } = require("./project-view-event");
 const { validateDeadlineInput } = require("./schedule");
 const { checkFrameAvailability } = require("./frame-check");
 const { DEFAULT_OUTPUT_DIR, captureScreenshotsFromDatabase } = require("./screenshot-capture");
@@ -190,6 +192,20 @@ const server = http.createServer(async (req, res) => {
     if (projectDetailMatch && req.method === "DELETE") {
       const result = await deleteProjectById(Number(projectDetailMatch[1]));
       sendJson(res, 200, { ok: true, ...result });
+      return;
+    }
+
+    const projectViewMatch = url.pathname.match(/^\/api\/projects\/(\d+)\/views$/);
+    if (projectViewMatch && req.method === "POST") {
+      const validation = validateProjectViewEventInput(await readJson(req));
+
+      if (!validation.ok) {
+        sendJson(res, 400, { error: "bad_request", message: validation.error });
+        return;
+      }
+
+      const event = await addProjectViewEvent(Number(projectViewMatch[1]), validation.event.eventType);
+      sendJson(res, 200, { ok: true, event });
       return;
     }
 

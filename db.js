@@ -83,6 +83,19 @@ async function ensureProjectTables(connection) {
     "comment_author",
     "comment_author VARCHAR(80) NOT NULL DEFAULT '' AFTER project_id"
   );
+
+  await connection.query(`
+    CREATE TABLE IF NOT EXISTS project_view_event (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      project_id INT NOT NULL,
+      event_type VARCHAR(40) NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      INDEX idx_project_view_event_project (project_id),
+      CONSTRAINT fk_project_view_event_project
+        FOREIGN KEY (project_id) REFERENCES student_project(id)
+        ON DELETE CASCADE
+    )
+  `);
 }
 
 async function ensureSettingTable(connection) {
@@ -140,7 +153,8 @@ function mapProjectRows(rows) {
     professorFeedback: String(row.professor_feedback ?? ""),
     updatedAt: row.updated_at ? new Date(row.updated_at).toISOString() : "",
     latestComment: String(row.latest_comment ?? ""),
-    commentCount: Number(row.comment_count ?? 0)
+    commentCount: Number(row.comment_count ?? 0),
+    viewCount: Number(row.view_count ?? 0)
   }));
 }
 
@@ -166,7 +180,12 @@ async function fetchProjectRows(connection) {
         SELECT COUNT(*)
         FROM project_comment c
         WHERE c.project_id = p.id
-      ) AS comment_count
+      ) AS comment_count,
+      (
+        SELECT COUNT(*)
+        FROM project_view_event v
+        WHERE v.project_id = p.id
+      ) AS view_count
     FROM student_project p
     ORDER BY p.student_id, p.project_name
   `);
@@ -190,7 +209,19 @@ async function fetchProjectById(projectId) {
     await ensureProjectTables(connection);
     const [rows] = await connection.execute(
       `
-        SELECT id, student_id, project_name, progress, deployment_url, screenshot_path, professor_feedback
+        SELECT
+          id,
+          student_id,
+          project_name,
+          progress,
+          deployment_url,
+          screenshot_path,
+          professor_feedback,
+          (
+            SELECT COUNT(*)
+            FROM project_view_event v
+            WHERE v.project_id = student_project.id
+          ) AS view_count
         FROM student_project
         WHERE id = ?
       `,
@@ -219,6 +250,7 @@ async function fetchProjectById(projectId) {
       deploymentUrl: String(rows[0].deployment_url ?? ""),
       screenshotPath: String(rows[0].screenshot_path ?? ""),
       professorFeedback: String(rows[0].professor_feedback ?? ""),
+      viewCount: Number(rows[0].view_count ?? 0),
       comments: comments.map((comment) => ({
         id: Number(comment.id),
         author: String(comment.comment_author ?? ""),
@@ -313,6 +345,20 @@ async function updateProjectScreenshotPath(projectId, screenshotPath) {
       [screenshotPath, projectId]
     );
     return { id: projectId, screenshotPath, updated: result.affectedRows > 0 };
+  } finally {
+    await connection.end();
+  }
+}
+
+async function addProjectViewEvent(projectId, eventType) {
+  const connection = await createConnection();
+  try {
+    await ensureProjectTables(connection);
+    const [result] = await connection.execute(
+      "INSERT INTO project_view_event (project_id, event_type) VALUES (?, ?)",
+      [projectId, eventType]
+    );
+    return { id: Number(result.insertId), projectId, eventType };
   } finally {
     await connection.end();
   }
@@ -422,11 +468,13 @@ module.exports = {
   updateProjectById,
   deleteProjectById,
   updateProjectScreenshotPath,
+  addProjectViewEvent,
   addProjectComment,
   fetchStudents,
   saveStudentProgress,
   saveStudentComment,
   deleteStudentById,
   checkStudentTable,
-  getDbConfig
+  getDbConfig,
+  mapProjectRows
 };
