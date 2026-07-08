@@ -9,6 +9,11 @@
 </head>
 <body>
   <main>
+    <nav class="top-nav" aria-label="page navigation">
+      <a href="/kiosk" data-nav-route="kiosk" class="active">Kiosk</a>
+      <a href="/insert" data-nav-route="insert">Insert</a>
+    </nav>
+
     <section class="header">
       <h1>사용자별 프로젝트 현황</h1>
       <p>사용자를 터치하면 프로젝트 목록이 열리고, 프로젝트를 고르면 상세 목업 화면이 열립니다</p>
@@ -109,6 +114,12 @@
       "최종 테스트",
       "최종 정리"
     ];
+
+    function setTopNavLinks() {
+      document.querySelectorAll("[data-nav-route]").forEach((link) => {
+        link.href = `${location.origin}/${link.dataset.navRoute}`;
+      });
+    }
 
     function getProjectsApiUrl() {
       if (location.protocol === "file:") {
@@ -433,6 +444,7 @@
       }
     });
 
+    setTopNavLinks();
     loadProjects();
     loadSettings();
     setInterval(loadProjects, 30000);
