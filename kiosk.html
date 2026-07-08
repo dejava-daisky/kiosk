@@ -65,6 +65,12 @@
       <div class="project-name" id="modalProjectName">-</div>
       <div class="student-progress" id="modalProjectProgress">-</div>
 
+      <section class="detail-block" id="deploymentBlock" hidden>
+        <h3>배포판</h3>
+        <p class="detail-copy" id="deploymentUrlText"></p>
+        <button class="preview-button" id="openDeploymentButton" type="button">배포판 목업 열기</button>
+      </section>
+
       <section class="detail-block">
         <h3>피드백 (교수님)</h3>
         <p id="modalProfessorFeedback" class="detail-copy">아직 입력된 피드백이 없습니다.</p>
@@ -85,6 +91,14 @@
     </div>
   </div>
 
+  <div class="deployment-preview" id="deploymentPreview" aria-hidden="true">
+    <div class="deployment-preview-bar">
+      <button id="closeDeploymentButton" type="button">화면닫기</button>
+      <span id="deploymentPreviewTitle">배포판 목업</span>
+    </div>
+    <iframe id="deploymentFrame" title="프로젝트 배포판 목업"></iframe>
+  </div>
+
   <script>
     const projectsTable = document.getElementById("projects");
     const message = document.getElementById("message");
@@ -96,6 +110,13 @@
     const modalStudentId = document.getElementById("modalStudentId");
     const modalProjectName = document.getElementById("modalProjectName");
     const modalProjectProgress = document.getElementById("modalProjectProgress");
+    const deploymentBlock = document.getElementById("deploymentBlock");
+    const deploymentUrlText = document.getElementById("deploymentUrlText");
+    const openDeploymentButton = document.getElementById("openDeploymentButton");
+    const deploymentPreview = document.getElementById("deploymentPreview");
+    const closeDeploymentButton = document.getElementById("closeDeploymentButton");
+    const deploymentFrame = document.getElementById("deploymentFrame");
+    const deploymentPreviewTitle = document.getElementById("deploymentPreviewTitle");
     const modalProfessorFeedback = document.getElementById("modalProfessorFeedback");
     const modalCommentList = document.getElementById("modalCommentList");
     const closeModalButton = document.getElementById("closeModalButton");
@@ -105,6 +126,7 @@
     let latestProjects = [];
     let latestUsers = [];
     let activeProjectId = null;
+    let activeDeploymentUrl = "";
     let currentDeadline = "2026-07-31";
     const recommendedPhases = [
       "기획",
@@ -330,9 +352,12 @@
       const project = await loadProjectDetail(projectId);
 
       activeProjectId = project.id;
+      activeDeploymentUrl = project.deploymentUrl || "";
       modalStudentId.textContent = project.studentId;
       modalProjectName.textContent = project.projectName;
       modalProjectProgress.textContent = `지금 진행중인 ${project.projectName}: 진행상황 ${project.progress}`;
+      deploymentBlock.hidden = !activeDeploymentUrl;
+      deploymentUrlText.textContent = activeDeploymentUrl;
       modalProfessorFeedback.textContent = project.professorFeedback || "아직 입력된 피드백이 없습니다.";
       renderComments(project.comments);
       commentInput.value = "";
@@ -359,6 +384,21 @@
     function closeProjectModal() {
       modal.classList.remove("open");
       activeProjectId = null;
+    }
+
+    function openDeploymentPreview() {
+      if (!activeDeploymentUrl) return;
+
+      deploymentPreviewTitle.textContent = `${modalProjectName.textContent} 배포판 목업`;
+      deploymentFrame.src = activeDeploymentUrl;
+      deploymentPreview.classList.add("open");
+      deploymentPreview.setAttribute("aria-hidden", "false");
+    }
+
+    function closeDeploymentPreview() {
+      deploymentPreview.classList.remove("open");
+      deploymentPreview.setAttribute("aria-hidden", "true");
+      deploymentFrame.src = "about:blank";
     }
 
     projectsTable.addEventListener("click", async (event) => {
@@ -436,9 +476,12 @@
 
     closeUserModalButton.addEventListener("click", closeUserModal);
     closeModalButton.addEventListener("click", closeProjectModal);
+    openDeploymentButton.addEventListener("click", openDeploymentPreview);
+    closeDeploymentButton.addEventListener("click", closeDeploymentPreview);
 
     document.addEventListener("keydown", (event) => {
       if (event.key === "Escape") {
+        closeDeploymentPreview();
         closeUserModal();
         closeProjectModal();
       }

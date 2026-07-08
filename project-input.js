@@ -10,6 +10,7 @@ function validateProjectInput(input) {
   const studentId = String(input.studentId ?? "").trim();
   const projectName = String(input.projectName ?? "").trim();
   const progress = String(input.progress ?? "").trim();
+  const deploymentUrl = String(input.deploymentUrl ?? "").trim();
   const professorFeedback = String(input.professorFeedback ?? "").trim();
 
   if (!studentId) {
@@ -24,12 +25,24 @@ function validateProjectInput(input) {
     return { ok: false, error: "진행상황을 선택하세요." };
   }
 
+  if (deploymentUrl) {
+    try {
+      const url = new URL(deploymentUrl);
+      if (url.protocol !== "http:" && url.protocol !== "https:") {
+        return { ok: false, error: "배포 주소는 http 또는 https 주소로 입력하세요." };
+      }
+    } catch (error) {
+      return { ok: false, error: "배포 주소를 올바르게 입력하세요." };
+    }
+  }
+
   return {
     ok: true,
     project: {
       studentId,
       projectName,
       progress,
+      deploymentUrl,
       professorFeedback
     }
   };

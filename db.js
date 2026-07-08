@@ -15,21 +15,25 @@ async function createConnection() {
   return mysql.createConnection(getDbConfig());
 }
 
-async function ensureStudentColumn(connection, columnName, columnDefinition) {
+async function ensureTableColumn(connection, tableName, columnName, columnDefinition) {
   const [databaseRows] = await connection.query("SELECT DATABASE() AS database_name");
   const databaseName = databaseRows[0].database_name;
   const [columnRows] = await connection.execute(
     `SELECT COLUMN_NAME
        FROM INFORMATION_SCHEMA.COLUMNS
       WHERE TABLE_SCHEMA = ?
-        AND TABLE_NAME = 'student'
+        AND TABLE_NAME = ?
         AND COLUMN_NAME = ?`,
-    [databaseName, columnName]
+    [databaseName, tableName, columnName]
   );
 
   if (columnRows.length === 0) {
-    await connection.query(`ALTER TABLE student ADD COLUMN ${columnDefinition}`);
+    await connection.query(`ALTER TABLE ${tableName} ADD COLUMN ${columnDefinition}`);
   }
+}
+
+async function ensureStudentColumn(connection, columnName, columnDefinition) {
+  await ensureTableColumn(connection, "student", columnName, columnDefinition);
 }
 
 async function ensureProjectTables(connection) {
@@ -39,12 +43,20 @@ async function ensureProjectTables(connection) {
       student_id VARCHAR(50) NOT NULL,
       project_name VARCHAR(255) NOT NULL,
       progress VARCHAR(100) NOT NULL,
+      deployment_url VARCHAR(500) NULL,
       professor_feedback TEXT NULL,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
       UNIQUE KEY unique_student_project (student_id, project_name)
     )
   `);
+
+  await ensureTableColumn(
+    connection,
+    "student_project",
+    "deployment_url",
+    "deployment_url VARCHAR(500) NULL AFTER progress"
+  );
 
   await connection.query(`
     CREATE TABLE IF NOT EXISTS project_comment (
@@ -109,6 +121,7 @@ function mapProjectRows(rows) {
     studentId: String(row.student_id ?? ""),
     projectName: String(row.project_name ?? ""),
     progress: String(row.progress ?? ""),
+    deploymentUrl: String(row.deployment_url ?? ""),
     professorFeedback: String(row.professor_feedback ?? ""),
     latestComment: String(row.latest_comment ?? ""),
     commentCount: Number(row.comment_count ?? 0)
@@ -122,6 +135,7 @@ async function fetchProjectRows(connection) {
       p.student_id,
       p.project_name,
       p.progress,
+      p.deployment_url,
       p.professor_feedback,
       (
         SELECT c.comment_text
@@ -158,7 +172,7 @@ async function fetchProjectById(projectId) {
     await ensureProjectTables(connection);
     const [rows] = await connection.execute(
       `
-        SELECT id, student_id, project_name, progress, professor_feedback
+        SELECT id, student_id, project_name, progress, deployment_url, professor_feedback
         FROM student_project
         WHERE id = ?
       `,
@@ -184,6 +198,7 @@ async function fetchProjectById(projectId) {
       studentId: String(rows[0].student_id ?? ""),
       projectName: String(rows[0].project_name ?? ""),
       progress: String(rows[0].progress ?? ""),
+      deploymentUrl: String(rows[0].deployment_url ?? ""),
       professorFeedback: String(rows[0].professor_feedback ?? ""),
       comments: comments.map((comment) => ({
         id: Number(comment.id),
@@ -202,18 +217,19 @@ async function saveProject(project) {
     await ensureProjectTables(connection);
     await connection.execute(
       `
-        INSERT INTO student_project (student_id, project_name, progress, professor_feedback)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO student_project (student_id, project_name, progress, deployment_url, professor_feedback)
+        VALUES (?, ?, ?, ?, ?)
         ON DUPLICATE KEY UPDATE
           progress = VALUES(progress),
+          deployment_url = VALUES(deployment_url),
           professor_feedback = VALUES(professor_feedback)
       `,
-      [project.studentId, project.projectName, project.progress, project.professorFeedback]
+      [project.studentId, project.projectName, project.progress, project.deploymentUrl, project.professorFeedback]
     );
 
     const [rows] = await connection.execute(
       `
-        SELECT id, student_id, project_name, progress, professor_feedback
+        SELECT id, student_id, project_name, progress, deployment_url, professor_feedback
         FROM student_project
         WHERE student_id = ? AND project_name = ?
       `,
@@ -225,6 +241,7 @@ async function saveProject(project) {
       studentId: String(rows[0].student_id ?? ""),
       projectName: String(rows[0].project_name ?? ""),
       progress: String(rows[0].progress ?? ""),
+      deploymentUrl: String(rows[0].deployment_url ?? ""),
       professorFeedback: String(rows[0].professor_feedback ?? "")
     };
   } finally {
@@ -239,10 +256,10 @@ async function updateProjectById(projectId, project) {
     const [result] = await connection.execute(
       `
         UPDATE student_project
-        SET student_id = ?, project_name = ?, progress = ?, professor_feedback = ?
+        SET student_id = ?, project_name = ?, progress = ?, deployment_url = ?, professor_feedback = ?
         WHERE id = ?
       `,
-      [project.studentId, project.projectName, project.progress, project.professorFeedback, projectId]
+      [project.studentId, project.projectName, project.progress, project.deploymentUrl, project.professorFeedback, projectId]
     );
 
     if (result.affectedRows === 0) {

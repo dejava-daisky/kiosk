@@ -365,6 +365,11 @@
         </label>
 
         <label class="wide">
+          배포판 링크
+          <input id="deploymentUrl" type="url" placeholder="https://example.com/kopo01" inputmode="url">
+        </label>
+
+        <label class="wide">
           피드백 (교수님)
           <textarea id="professorFeedback" placeholder="교수 피드백을 입력하세요"></textarea>
         </label>
@@ -407,6 +412,7 @@
     const studentIdInput = document.getElementById("studentId");
     const projectNameInput = document.getElementById("projectName");
     const progressInput = document.getElementById("progress");
+    const deploymentUrlInput = document.getElementById("deploymentUrl");
     const professorFeedbackInput = document.getElementById("professorFeedback");
     const deleteButton = document.getElementById("deleteButton");
     const resetButton = document.getElementById("resetButton");
@@ -523,6 +529,7 @@
       studentIdInput.value = project.studentId;
       projectNameInput.value = project.projectName;
       progressInput.value = project.progress;
+      deploymentUrlInput.value = project.deploymentUrl || "";
       professorFeedbackInput.value = project.professorFeedback || "";
     }
 
@@ -592,6 +599,7 @@
         studentId: studentIdInput.value,
         projectName: projectNameInput.value,
         progress: progressInput.value,
+        deploymentUrl: deploymentUrlInput.value,
         professorFeedback: professorFeedbackInput.value
       };
 

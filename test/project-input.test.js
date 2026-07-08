@@ -8,6 +8,7 @@ test("accepts project input for one student project", () => {
       studentId: " kopo01 ",
       projectName: " 프로젝트 A ",
       progress: "프로토타입",
+      deploymentUrl: " https://example.com/kopo01 ",
       professorFeedback: "README 보강"
     }),
     {
@@ -16,8 +17,25 @@ test("accepts project input for one student project", () => {
         studentId: "kopo01",
         projectName: "프로젝트 A",
         progress: "프로토타입",
+        deploymentUrl: "https://example.com/kopo01",
         professorFeedback: "README 보강"
       }
+    }
+  );
+});
+
+test("rejects invalid deployment url", () => {
+  assert.deepEqual(
+    validateProjectInput({
+      studentId: "kopo01",
+      projectName: "프로젝트 A",
+      progress: "기획",
+      deploymentUrl: "ftp://example.com",
+      professorFeedback: ""
+    }),
+    {
+      ok: false,
+      error: "배포 주소는 http 또는 https 주소로 입력하세요."
     }
   );
 });

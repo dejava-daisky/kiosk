@@ -153,6 +153,18 @@
       font-weight: 900;
     }
 
+    .optional-field {
+      display: grid;
+      gap: 8px;
+    }
+
+    .optional-help {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 800;
+    }
+
     @media (max-width: 760px) {
       body { padding: 16px; }
       .page-shell { min-height: calc(100vh - 32px); }
@@ -203,6 +215,11 @@
         </label>
       </div>
 
+      <div class="optional-field">
+        <p class="optional-help">(있다면, 프로젝트 배포판의 링크를 넣어주세요)</p>
+        <input id="deploymentUrl" type="url" placeholder="https://example.com/kopo01" inputmode="url">
+      </div>
+
       <button type="submit">저장</button>
       <p id="message"></p>
     </form>
@@ -214,6 +231,7 @@
     const studentIdInput = document.getElementById("studentId");
     const projectNameInput = document.getElementById("projectName");
     const progressInput = document.getElementById("progress");
+    const deploymentUrlInput = document.getElementById("deploymentUrl");
     const message = document.getElementById("message");
 
     function setTopNavLinks() {
@@ -249,6 +267,7 @@
         studentId: studentIdInput.value,
         projectName: projectNameInput.value,
         progress: progressInput.value,
+        deploymentUrl: deploymentUrlInput.value,
         professorFeedback: ""
       };
 
@@ -263,6 +282,7 @@
         message.textContent = `${data.project.studentId} / ${data.project.projectName} 저장 완료`;
         projectNameInput.value = "";
         progressInput.value = "";
+        deploymentUrlInput.value = "";
       } catch (error) {
         message.textContent = `오류: ${error.message}`;
       }

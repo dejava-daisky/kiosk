@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS student_project (
     student_id VARCHAR(50) NOT NULL,
     project_name VARCHAR(255) NOT NULL,
     progress VARCHAR(100) NOT NULL,
+    deployment_url VARCHAR(500) NULL,
     professor_feedback TEXT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
