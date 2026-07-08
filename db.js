@@ -131,6 +131,7 @@ function mapProjectRows(rows) {
     progress: String(row.progress ?? ""),
     deploymentUrl: String(row.deployment_url ?? ""),
     professorFeedback: String(row.professor_feedback ?? ""),
+    updatedAt: row.updated_at ? new Date(row.updated_at).toISOString() : "",
     latestComment: String(row.latest_comment ?? ""),
     commentCount: Number(row.comment_count ?? 0)
   }));
@@ -145,6 +146,7 @@ async function fetchProjectRows(connection) {
       p.progress,
       p.deployment_url,
       p.professor_feedback,
+      p.updated_at,
       (
         SELECT c.comment_text
         FROM project_comment c

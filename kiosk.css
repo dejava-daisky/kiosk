@@ -231,6 +231,15 @@ tr:last-child td {
   font-size: clamp(18px, 1.9vw, 26px);
 }
 
+.latest-update {
+  display: inline-block;
+  margin-left: 8px;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 900;
+  vertical-align: middle;
+}
+
 .feedback-cell {
   color: #7a3b00;
   font-size: clamp(16px, 1.8vw, 22px);

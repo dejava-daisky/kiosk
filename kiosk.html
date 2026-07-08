@@ -186,6 +186,19 @@
       ].join(":");
     }
 
+    function formatUpdatedHour(isoString) {
+      if (!isoString) return "-";
+
+      const date = new Date(isoString);
+      if (Number.isNaN(date.getTime())) return "-";
+
+      return [
+        date.getFullYear(),
+        pad(date.getMonth() + 1),
+        pad(date.getDate())
+      ].join("-") + " " + pad(date.getHours()) + "시";
+    }
+
     function formatDeadlineCountdown(now, deadline) {
       const diffMs = deadline.getTime() - now.getTime();
 
@@ -290,7 +303,7 @@
             <td>${escapeHtml(user.studentId)}</td>
             <td>
               <div class="project-cell">
-                <strong>${user.projects.length}개</strong>
+                <strong>${user.projects.length}개 <span class="latest-update">${escapeHtml(formatUpdatedHour(user.latestUpdatedAt))}</span></strong>
                 <span>${escapeHtml(user.projectNames)}</span>
               </div>
             </td>
@@ -323,12 +336,16 @@
           groups.set(project.studentId, {
             studentId: project.studentId,
             projects: [],
-            latestComment: ""
+            latestComment: "",
+            latestUpdatedAt: ""
           });
         }
 
         const group = groups.get(project.studentId);
         group.projects.push(project);
+        if (!group.latestUpdatedAt || new Date(project.updatedAt) > new Date(group.latestUpdatedAt)) {
+          group.latestUpdatedAt = project.updatedAt;
+        }
         if (project.latestComment) {
           group.latestComment = project.latestComment;
         }
