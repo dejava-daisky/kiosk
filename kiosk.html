@@ -127,6 +127,7 @@
     let latestProjects = [];
     let latestUsers = [];
     let activeProjectId = null;
+    let activeProjectProgress = "";
     let activeDeploymentUrl = "";
     let currentDeadline = "2026-07-31";
     const recommendedPhases = [
@@ -134,7 +135,7 @@
       "프로토타입",
       "실제 제작 시작",
       "최종 테스트",
-      "최종 정리"
+      "완료"
     ];
 
     function setTopNavLinks() {
@@ -208,16 +209,24 @@
 
     function buildRecommendedSchedule(now, deadlineText) {
       const [year, month, day] = deadlineText.split("-").map(Number);
+      const remainingPhases = (() => {
+        const currentIndex = recommendedPhases.indexOf(activeProjectProgress);
+        if (currentIndex === -1) {
+          return recommendedPhases;
+        }
+
+        return recommendedPhases.slice(currentIndex);
+      })();
       const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
       const end = new Date(year, month - 1, day);
       const remainingDays = Math.max(0, Math.ceil((end - today) / 86400000));
 
       if (remainingDays === 0) {
-        return recommendedPhases.map((phase) => ({ phase, dueDate: formatDate(end) }));
+        return remainingPhases.map((phase) => ({ phase, dueDate: formatDate(end) }));
       }
 
-      return recommendedPhases.map((phase, index) => {
-        const offset = Math.ceil(((index + 1) * remainingDays) / recommendedPhases.length);
+      return remainingPhases.map((phase, index) => {
+        const offset = Math.ceil(((index + 1) * remainingDays) / remainingPhases.length);
         const dueDate = new Date(today);
         dueDate.setDate(today.getDate() + offset);
 
@@ -353,6 +362,7 @@
       const project = await loadProjectDetail(projectId);
 
       activeProjectId = project.id;
+      activeProjectProgress = project.progress || "";
       activeDeploymentUrl = project.deploymentUrl || "";
       modalStudentId.textContent = project.studentId;
       modalProjectName.textContent = project.projectName;
@@ -385,6 +395,7 @@
     function closeProjectModal() {
       modal.classList.remove("open");
       activeProjectId = null;
+      activeProjectProgress = "";
     }
 
     function openDeploymentPreview() {

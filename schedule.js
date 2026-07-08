@@ -3,7 +3,7 @@ const RECOMMENDED_PHASES = [
   "프로토타입",
   "실제 제작 시작",
   "최종 테스트",
-  "최종 정리"
+  "완료"
 ];
 
 function pad(value) {
@@ -35,20 +35,32 @@ function parseLocalDate(dateText) {
   return date;
 }
 
-function buildRecommendedSchedule(now, deadlineText) {
+function getRemainingPhases(currentProgress) {
+  const normalizedProgress = String(currentProgress ?? "").trim();
+  const currentIndex = RECOMMENDED_PHASES.indexOf(normalizedProgress);
+
+  if (currentIndex === -1) {
+    return [...RECOMMENDED_PHASES];
+  }
+
+  return RECOMMENDED_PHASES.slice(currentIndex);
+}
+
+function buildRecommendedSchedule(now, deadlineText, currentProgress = "") {
   const deadline = parseLocalDate(deadlineText);
   if (!deadline) return [];
 
+  const remainingPhases = getRemainingPhases(currentProgress);
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const end = new Date(deadline.getFullYear(), deadline.getMonth(), deadline.getDate());
   const remainingDays = Math.max(0, Math.ceil((end - today) / 86400000));
 
   if (remainingDays === 0) {
-    return RECOMMENDED_PHASES.map((phase) => ({ phase, dueDate: formatDate(end) }));
+    return remainingPhases.map((phase) => ({ phase, dueDate: formatDate(end) }));
   }
 
-  return RECOMMENDED_PHASES.map((phase, index) => {
-    const offset = Math.ceil(((index + 1) * remainingDays) / RECOMMENDED_PHASES.length);
+  return remainingPhases.map((phase, index) => {
+    const offset = Math.ceil(((index + 1) * remainingDays) / remainingPhases.length);
     const dueDate = new Date(today);
     dueDate.setDate(today.getDate() + offset);
 
@@ -74,6 +86,7 @@ module.exports = {
   RECOMMENDED_PHASES,
   buildRecommendedSchedule,
   formatDate,
+  getRemainingPhases,
   parseLocalDate,
   validateDeadlineInput
 };
