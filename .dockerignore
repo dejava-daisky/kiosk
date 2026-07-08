@@ -4,3 +4,4 @@ node_modules
 *.log
 npm-debug.log*
 사용자별 진행 상황.html
+public/screenshots/*.png

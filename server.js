@@ -9,11 +9,13 @@ const {
   saveProject,
   updateProjectById,
   deleteProjectById,
+  updateProjectScreenshotPath,
   addProjectComment
 } = require("./db");
 const { validateProjectInput, validateProjectCommentInput } = require("./project-input");
 const { validateDeadlineInput } = require("./schedule");
 const { checkFrameAvailability } = require("./frame-check");
+const { DEFAULT_OUTPUT_DIR, captureScreenshotsFromDatabase } = require("./screenshot-capture");
 
 const port = Number(process.env.PORT || 3000);
 
@@ -35,6 +37,14 @@ async function sendCss(res, fileName) {
   const css = await fs.readFile(path.join(__dirname, fileName), "utf8");
   res.writeHead(200, { "Content-Type": "text/css; charset=utf-8" });
   res.end(css);
+}
+
+function sendPng(res, image) {
+  res.writeHead(200, {
+    "Content-Type": "image/png",
+    "Cache-Control": "public, max-age=300"
+  });
+  res.end(image);
 }
 
 async function readJson(req) {
@@ -78,6 +88,26 @@ const server = http.createServer(async (req, res) => {
 
     if (url.pathname === "/kiosk-print.css") {
       await sendCss(res, "kiosk-print.css");
+      return;
+    }
+
+    if (url.pathname.startsWith("/screenshots/") && req.method === "GET") {
+      const requestedFile = path.basename(url.pathname);
+      const screenshotPath = path.join(DEFAULT_OUTPUT_DIR, requestedFile);
+      const resolvedPath = path.resolve(screenshotPath);
+      const resolvedOutputDir = path.resolve(DEFAULT_OUTPUT_DIR);
+
+      if (!resolvedPath.startsWith(resolvedOutputDir + path.sep)) {
+        sendJson(res, 400, { error: "bad_request" });
+        return;
+      }
+
+      try {
+        const image = await fs.readFile(resolvedPath);
+        sendPng(res, image);
+      } catch (error) {
+        sendJson(res, 404, { error: "not_found" });
+      }
       return;
     }
 
@@ -188,4 +218,36 @@ const server = http.createServer(async (req, res) => {
 
 server.listen(port, () => {
   console.log(`kiosk server: http://localhost:${port}`);
+  startScreenshotCaptureSchedule();
 });
+
+let screenshotCaptureRunning = false;
+
+async function runScreenshotCapture(reason) {
+  if (screenshotCaptureRunning) {
+    console.log(`[screenshots] skipped ${reason}: already running`);
+    return;
+  }
+
+  screenshotCaptureRunning = true;
+  try {
+    console.log(`[screenshots] capture started: ${reason}`);
+    const result = await captureScreenshotsFromDatabase({
+      fetchProjects,
+      updateProjectScreenshotPath
+    });
+    console.log(`[screenshots] capture finished: captured=${result.captured}, skipped=${result.skipped}, failed=${result.failed}`);
+    result.logs
+      .filter((log) => log.status === "failed")
+      .forEach((log) => console.log(`[screenshots] failed project=${log.projectId}: ${log.reason}`));
+  } catch (error) {
+    console.log(`[screenshots] job failed: ${error.message}`);
+  } finally {
+    screenshotCaptureRunning = false;
+  }
+}
+
+function startScreenshotCaptureSchedule() {
+  setTimeout(() => runScreenshotCapture("server-start"), 1000);
+  setInterval(() => runScreenshotCapture("daily"), 24 * 60 * 60 * 1000);
+}

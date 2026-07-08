@@ -479,6 +479,37 @@ h1 {
   background: #c45628;
 }
 
+.screenshot-card {
+  overflow: hidden;
+  border: 1px solid #d2dbe6;
+  border-radius: 8px;
+  background: #f7f9fc;
+}
+
+.screenshot-card .detail-copy {
+  padding: 14px;
+}
+
+.screenshot-button {
+  display: block;
+  width: 100%;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.screenshot-button img {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  max-height: 360px;
+  object-fit: contain;
+  background: #101820;
+}
+
 .deployment-preview {
   display: none;
   position: fixed;

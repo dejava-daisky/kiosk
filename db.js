@@ -57,6 +57,12 @@ async function ensureProjectTables(connection) {
     "deployment_url",
     "deployment_url VARCHAR(500) NULL AFTER progress"
   );
+  await ensureTableColumn(
+    connection,
+    "student_project",
+    "screenshot_path",
+    "screenshot_path VARCHAR(500) NULL AFTER deployment_url"
+  );
 
   await connection.query(`
     CREATE TABLE IF NOT EXISTS project_comment (
@@ -130,6 +136,7 @@ function mapProjectRows(rows) {
     projectName: String(row.project_name ?? ""),
     progress: String(row.progress ?? ""),
     deploymentUrl: String(row.deployment_url ?? ""),
+    screenshotPath: String(row.screenshot_path ?? ""),
     professorFeedback: String(row.professor_feedback ?? ""),
     updatedAt: row.updated_at ? new Date(row.updated_at).toISOString() : "",
     latestComment: String(row.latest_comment ?? ""),
@@ -145,6 +152,7 @@ async function fetchProjectRows(connection) {
       p.project_name,
       p.progress,
       p.deployment_url,
+      p.screenshot_path,
       p.professor_feedback,
       p.updated_at,
       (
@@ -182,7 +190,7 @@ async function fetchProjectById(projectId) {
     await ensureProjectTables(connection);
     const [rows] = await connection.execute(
       `
-        SELECT id, student_id, project_name, progress, deployment_url, professor_feedback
+        SELECT id, student_id, project_name, progress, deployment_url, screenshot_path, professor_feedback
         FROM student_project
         WHERE id = ?
       `,
@@ -209,6 +217,7 @@ async function fetchProjectById(projectId) {
       projectName: String(rows[0].project_name ?? ""),
       progress: String(rows[0].progress ?? ""),
       deploymentUrl: String(rows[0].deployment_url ?? ""),
+      screenshotPath: String(rows[0].screenshot_path ?? ""),
       professorFeedback: String(rows[0].professor_feedback ?? ""),
       comments: comments.map((comment) => ({
         id: Number(comment.id),
@@ -240,7 +249,7 @@ async function saveProject(project) {
 
     const [rows] = await connection.execute(
       `
-        SELECT id, student_id, project_name, progress, deployment_url, professor_feedback
+        SELECT id, student_id, project_name, progress, deployment_url, screenshot_path, professor_feedback
         FROM student_project
         WHERE student_id = ? AND project_name = ?
       `,
@@ -253,6 +262,7 @@ async function saveProject(project) {
       projectName: String(rows[0].project_name ?? ""),
       progress: String(rows[0].progress ?? ""),
       deploymentUrl: String(rows[0].deployment_url ?? ""),
+      screenshotPath: String(rows[0].screenshot_path ?? ""),
       professorFeedback: String(rows[0].professor_feedback ?? "")
     };
   } finally {
@@ -289,6 +299,20 @@ async function deleteProjectById(projectId) {
     await ensureProjectTables(connection);
     const [result] = await connection.execute("DELETE FROM student_project WHERE id = ?", [projectId]);
     return { id: projectId, deleted: result.affectedRows > 0 };
+  } finally {
+    await connection.end();
+  }
+}
+
+async function updateProjectScreenshotPath(projectId, screenshotPath) {
+  const connection = await createConnection();
+  try {
+    await ensureProjectTables(connection);
+    const [result] = await connection.execute(
+      "UPDATE student_project SET screenshot_path = ? WHERE id = ?",
+      [screenshotPath, projectId]
+    );
+    return { id: projectId, screenshotPath, updated: result.affectedRows > 0 };
   } finally {
     await connection.end();
   }
@@ -397,6 +421,7 @@ module.exports = {
   saveProject,
   updateProjectById,
   deleteProjectById,
+  updateProjectScreenshotPath,
   addProjectComment,
   fetchStudents,
   saveStudentProgress,

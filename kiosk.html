@@ -51,6 +51,13 @@
       <div class="student-progress" id="modalProjectProgress">-</div>
 
       <section class="detail-block">
+        <h3>스크린샷</h3>
+        <div id="projectScreenshotBlock" class="screenshot-card">
+          <p class="detail-copy">아직 등록된 스크린샷이 없습니다.</p>
+        </div>
+      </section>
+
+      <section class="detail-block">
         <h3>추천 일정</h3>
         <div class="schedule-list modal-schedule-list" id="projectScheduleList"></div>
       </section>
@@ -108,6 +115,7 @@
     const closeDeploymentButton = document.getElementById("closeDeploymentButton");
     const deploymentFrame = document.getElementById("deploymentFrame");
     const deploymentPreviewTitle = document.getElementById("deploymentPreviewTitle");
+    const projectScreenshotBlock = document.getElementById("projectScreenshotBlock");
     const modalProfessorFeedback = document.getElementById("modalProfessorFeedback");
     const modalCommentList = document.getElementById("modalCommentList");
     const closeModalButton = document.getElementById("closeModalButton");
@@ -458,6 +466,22 @@
       `).join("");
     }
 
+    function renderProjectScreenshot(project) {
+      const screenshotPath = project.screenshotUrl || project.screenshotPath || "";
+
+      if (!screenshotPath) {
+        projectScreenshotBlock.innerHTML = `<p class="detail-copy">아직 등록된 스크린샷이 없습니다.</p>`;
+        return;
+      }
+
+      const targetUrl = project.deploymentUrl || screenshotPath;
+      projectScreenshotBlock.innerHTML = `
+        <button class="screenshot-button" type="button" data-screenshot-target="${escapeHtml(targetUrl)}">
+          <img src="${escapeHtml(screenshotPath)}" alt="${escapeHtml(project.projectName)} 스크린샷">
+        </button>
+      `;
+    }
+
     async function openProjectModal(projectId) {
       const project = await loadProjectDetail(projectId);
 
@@ -468,6 +492,7 @@
       modalStudentId.textContent = project.studentId;
       modalProjectName.textContent = project.projectName;
       modalProjectProgress.textContent = `지금 진행중인 ${project.projectName}: 진행상황 ${project.progress}`;
+      renderProjectScreenshot(project);
       renderRecommendedSchedule();
       deploymentBlock.hidden = !activeDeploymentUrl;
       deploymentUrlText.textContent = activeDeploymentUrl;
@@ -635,6 +660,16 @@
     closeModalButton.addEventListener("click", closeProjectModal);
     openDeploymentButton.addEventListener("click", openDeploymentPreview);
     closeDeploymentButton.addEventListener("click", closeDeploymentPreview);
+    projectScreenshotBlock.addEventListener("click", (event) => {
+      const screenshotButton = event.target.closest("[data-screenshot-target]");
+      if (!screenshotButton) return;
+
+      window.open(screenshotButton.dataset.screenshotTarget, "_blank", "noopener");
+    });
+    projectScreenshotBlock.addEventListener("error", (event) => {
+      if (event.target.tagName !== "IMG") return;
+      projectScreenshotBlock.innerHTML = `<p class="detail-copy">아직 등록된 스크린샷이 없습니다.</p>`;
+    }, true);
 
     document.addEventListener("keydown", (event) => {
       if (event.key === "Escape") {

@@ -2,10 +2,11 @@
   "scripts": {
     "test": "node --test",
     "start": "node server.js",
-    "check:db": "node scripts/check-db.js"
+    "check:db": "node scripts/check-db.js",
+    "capture:screenshots": "node scripts/capture-screenshots.js"
   },
   "dependencies": {
-    "mysql2": "^3.11.5"
-  },
-  "devDependencies": {}
+    "mysql2": "^3.11.5",
+    "playwright": "^1.61.1"
+  }
 }
