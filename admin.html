@@ -181,6 +181,16 @@
       border-bottom: 0;
     }
 
+    tbody tr {
+      cursor: pointer;
+    }
+
+    tbody tr:hover,
+    tbody tr:focus-visible {
+      background: #eef9fb;
+      outline: none;
+    }
+
     .project-cell {
       display: grid;
       gap: 6px;
@@ -201,18 +211,6 @@
     .small-button {
       min-height: 36px;
       padding: 0 12px;
-    }
-
-    .student-id-button {
-      width: auto;
-      min-height: auto;
-      padding: 0;
-      color: var(--blue);
-      background: transparent;
-      border: 0;
-      font-weight: 950;
-      text-decoration: underline;
-      text-underline-offset: 4px;
     }
 
     .modal {
@@ -244,36 +242,34 @@
       margin: 0 0 12px;
     }
 
-    .activity-list {
+    .project-list {
       display: grid;
-      gap: 12px;
+      gap: 10px;
     }
 
-    .activity-item {
+    .project-option {
       display: grid;
-      grid-template-columns: 150px 88px 1fr;
-      gap: 12px;
+      gap: 6px;
+      width: 100%;
+      height: auto;
+      min-height: 78px;
       padding: 14px;
+      color: var(--ink);
       background: #f8fafc;
       border: 1px solid #dce4ed;
-      border-radius: 7px;
+      text-align: left;
     }
 
-    .activity-time,
-    .activity-id {
-      color: var(--muted);
-      font-weight: 900;
-    }
-
-    .activity-title {
-      color: var(--ink);
-      font-weight: 950;
-    }
-
-    .activity-detail {
-      grid-column: 3;
+    .project-option strong {
       color: var(--blue);
-      font-weight: 900;
+      font-size: 20px;
+    }
+
+    .project-option span,
+    .project-option em {
+      color: var(--muted);
+      font-style: normal;
+      font-weight: 800;
     }
 
     .modal-actions {
@@ -285,8 +281,6 @@
     @media (max-width: 800px) {
       body { padding: 16px; }
       form { grid-template-columns: 1fr; }
-      .activity-item { grid-template-columns: 1fr; }
-      .activity-detail { grid-column: auto; }
     }
   </style>
 </head>
@@ -294,7 +288,7 @@
   <main>
     <section class="header">
       <h1>관리자 페이지</h1>
-      <p>키오스크 구조와 같은 프로젝트 목록을 보면서 수정하고 삭제할 수 있습니다</p>
+      <p>사용자를 선택한 뒤 프로젝트를 골라 수정하거나 삭제합니다</p>
       <div class="deadline-bar">
         <span>지금 시간: <strong id="currentTime">-</strong></span>
         <span>최종 마감: <strong>2026-07-31</strong></span>
@@ -346,22 +340,21 @@
         <thead>
           <tr>
             <th>사용자</th>
-            <th>프로젝트</th>
+            <th>프로젝트 수</th>
             <th>코멘트</th>
-            <th>관리</th>
           </tr>
         </thead>
-        <tbody id="projects"></tbody>
+        <tbody id="users"></tbody>
       </table>
     </section>
   </main>
 
-  <div class="modal" id="activityModal">
-    <div class="modal-body" role="dialog" aria-modal="true" aria-labelledby="activityModalTitle">
-      <h2 id="activityModalTitle">학생 활동</h2>
-      <div class="activity-list" id="activityList"></div>
+  <div class="modal" id="userModal">
+    <div class="modal-body" role="dialog" aria-modal="true" aria-labelledby="userModalTitle">
+      <h2 id="userModalTitle">사용자 프로젝트</h2>
+      <div class="project-list" id="userProjectList"></div>
       <div class="modal-actions">
-        <button class="ghost-button small-button" id="closeActivityModalButton" type="button">닫기</button>
+        <button class="ghost-button small-button" id="closeUserModalButton" type="button">닫기</button>
       </div>
     </div>
   </div>
@@ -376,11 +369,12 @@
     const deleteButton = document.getElementById("deleteButton");
     const resetButton = document.getElementById("resetButton");
     const message = document.getElementById("message");
-    const projectsTable = document.getElementById("projects");
-    const activityModal = document.getElementById("activityModal");
-    const activityList = document.getElementById("activityList");
-    const closeActivityModalButton = document.getElementById("closeActivityModalButton");
+    const usersTable = document.getElementById("users");
+    const userModal = document.getElementById("userModal");
+    const userProjectList = document.getElementById("userProjectList");
+    const closeUserModalButton = document.getElementById("closeUserModalButton");
     let latestProjects = [];
+    let latestUsers = [];
 
     function getProjectsApiUrl() {
       if (location.protocol === "file:") {
@@ -437,61 +431,6 @@
       document.getElementById("deadlineCountdown").textContent = formatDeadlineCountdown(now, deadline);
     }
 
-    function formatMinute(date) {
-      return formatCurrentTime(date);
-    }
-
-    function addMinutes(date, minutes) {
-      return new Date(date.getTime() + minutes * 60000);
-    }
-
-    function buildMockActivities(project) {
-      const now = new Date();
-      const studentId = String(project.studentId || "").toUpperCase();
-      const activities = [
-        {
-          time: formatMinute(addMinutes(now, -6)),
-          studentId,
-          title: "프로젝트 상세 확인",
-          detail: `${project.projectName} 목업 화면 열람`
-        },
-        {
-          time: formatMinute(now),
-          studentId,
-          title: "진행단계",
-          detail: `기획 → ${project.progress}`
-        }
-      ];
-
-      if (project.professorFeedback) {
-        activities.push({
-          time: formatMinute(now),
-          studentId,
-          title: "피드백",
-          detail: project.professorFeedback
-        });
-      }
-
-      return activities;
-    }
-
-    function openActivityModal(project) {
-      document.getElementById("activityModalTitle").textContent = `${project.studentId} 활동`;
-      activityList.innerHTML = buildMockActivities(project).map((activity) => `
-        <div class="activity-item">
-          <div class="activity-time">${escapeHtml(activity.time)}</div>
-          <div class="activity-id">${escapeHtml(activity.studentId)}</div>
-          <div class="activity-title">${escapeHtml(activity.title)}</div>
-          <div class="activity-detail">${escapeHtml(activity.detail)}</div>
-        </div>
-      `).join("");
-      activityModal.classList.add("open");
-    }
-
-    function closeActivityModal() {
-      activityModal.classList.remove("open");
-    }
-
     async function readJson(response) {
       const data = await response.json();
 
@@ -500,6 +439,28 @@
       }
 
       return data;
+    }
+
+    function groupProjectsByStudent(projects) {
+      const groups = new Map();
+
+      projects.forEach((project) => {
+        if (!groups.has(project.studentId)) {
+          groups.set(project.studentId, {
+            studentId: project.studentId,
+            projects: [],
+            latestComment: ""
+          });
+        }
+
+        const group = groups.get(project.studentId);
+        group.projects.push(project);
+        if (project.latestComment) {
+          group.latestComment = project.latestComment;
+        }
+      });
+
+      return [...groups.values()];
     }
 
     function fillForm(project) {
@@ -515,32 +476,43 @@
       projectForm.reset();
     }
 
+    function openUserModal(user) {
+      document.getElementById("userModalTitle").textContent = `${user.studentId} 프로젝트`;
+      userProjectList.innerHTML = user.projects.map((project) => `
+        <button class="project-option" type="button" data-project-id="${project.id}">
+          <strong>${escapeHtml(project.projectName)}</strong>
+          <span>진행상황: ${escapeHtml(project.progress)}</span>
+          <em>${project.latestComment ? escapeHtml(project.latestComment) : "코멘트 없음"}</em>
+        </button>
+      `).join("");
+      userModal.classList.add("open");
+    }
+
+    function closeUserModal() {
+      userModal.classList.remove("open");
+    }
+
     async function loadProjects() {
       try {
         const response = await fetch(getProjectsApiUrl());
         const data = await readJson(response);
         latestProjects = data.projects;
+        latestUsers = groupProjectsByStudent(data.projects);
 
-        projectsTable.innerHTML = data.projects.map((project, index) => `
-          <tr data-index="${index}">
-            <td><button class="student-id-button" type="button" data-action="activity">${escapeHtml(project.studentId)}</button></td>
+        usersTable.innerHTML = latestUsers.map((user, index) => `
+          <tr tabindex="0" data-index="${index}">
+            <td>${escapeHtml(user.studentId)}</td>
             <td>
               <div class="project-cell">
-                <strong>${escapeHtml(project.projectName)}</strong>
-                <span>진행상황: ${escapeHtml(project.progress)}</span>
+                <strong>${user.projects.length}개</strong>
+                <span>${escapeHtml(user.projects.map((project) => project.projectName).join(", "))}</span>
               </div>
             </td>
-            <td class="feedback-cell">${project.latestComment ? escapeHtml(project.latestComment) : "-"}</td>
-            <td>
-              <div class="row-actions">
-                <button class="ghost-button small-button" type="button" data-action="edit">불러오기</button>
-                <button class="delete-button small-button" type="button" data-action="delete">삭제</button>
-              </div>
-            </td>
+            <td class="feedback-cell">${user.latestComment ? escapeHtml(user.latestComment) : "-"}</td>
           </tr>
         `).join("");
 
-        message.textContent = `${data.projects.length}개 프로젝트 표시 중`;
+        message.textContent = `${latestUsers.length}명 / ${data.projects.length}개 프로젝트 표시 중`;
       } catch (error) {
         message.textContent = `오류: ${error.message}`;
       }
@@ -577,7 +549,7 @@
       const projectId = projectIdInput.value.trim();
 
       if (!projectId) {
-        message.textContent = "삭제할 프로젝트를 먼저 불러오세요.";
+        message.textContent = "삭제할 프로젝트를 먼저 선택하세요.";
         return;
       }
 
@@ -593,48 +565,47 @@
 
     resetButton.addEventListener("click", resetForm);
 
-    projectsTable.addEventListener("click", async (event) => {
-      const button = event.target.closest("button");
+    usersTable.addEventListener("click", (event) => {
       const row = event.target.closest("tr");
-      if (!button || !row) return;
+      if (!row) return;
 
-      const project = latestProjects[Number(row.dataset.index)];
+      const user = latestUsers[Number(row.dataset.index)];
+      if (user) openUserModal(user);
+    });
+
+    usersTable.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      const row = event.target.closest("tr");
+      if (!row) return;
+
+      event.preventDefault();
+      const user = latestUsers[Number(row.dataset.index)];
+      if (user) openUserModal(user);
+    });
+
+    userProjectList.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-project-id]");
+      if (!button) return;
+
+      const project = latestProjects.find((item) => item.id === Number(button.dataset.projectId));
       if (!project) return;
 
-      if (button.dataset.action === "edit") {
-        fillForm(project);
-        message.textContent = `${project.studentId} / ${project.projectName} 불러옴`;
-      }
+      fillForm(project);
+      closeUserModal();
+      message.textContent = `${project.studentId} / ${project.projectName} 선택됨`;
+    });
 
-      if (button.dataset.action === "delete") {
-        try {
-          await readJson(await fetch(`${getProjectsApiUrl()}/${project.id}`, { method: "DELETE" }));
-          message.textContent = `${project.projectName} 삭제 완료`;
-          if (projectIdInput.value === String(project.id)) {
-            resetForm();
-          }
-          await loadProjects();
-        } catch (error) {
-          message.textContent = `오류: ${error.message}`;
-        }
-      }
-
-      if (button.dataset.action === "activity") {
-        openActivityModal(project);
+    userModal.addEventListener("click", (event) => {
+      if (event.target === userModal) {
+        closeUserModal();
       }
     });
 
-    activityModal.addEventListener("click", (event) => {
-      if (event.target === activityModal) {
-        closeActivityModal();
-      }
-    });
-
-    closeActivityModalButton.addEventListener("click", closeActivityModal);
+    closeUserModalButton.addEventListener("click", closeUserModal);
 
     document.addEventListener("keydown", (event) => {
       if (event.key === "Escape") {
-        closeActivityModal();
+        closeUserModal();
       }
     });
 

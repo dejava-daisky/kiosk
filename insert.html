@@ -21,6 +21,8 @@
     body {
       min-height: 100vh;
       margin: 0;
+      display: grid;
+      place-items: center;
       padding: 24px;
       color: var(--ink);
       background:
@@ -31,14 +33,8 @@
       font-family: "Segoe UI", "Pretendard", "Noto Sans KR", Arial, sans-serif;
     }
 
-    .layout {
-      width: min(960px, 100%);
-      margin: 0 auto;
-      display: grid;
-      gap: 18px;
-    }
-
     .panel {
+      width: min(720px, 100%);
       overflow: hidden;
       background: var(--panel);
       border: 1px solid var(--line);
@@ -119,29 +115,6 @@
       font-weight: 900;
     }
 
-    table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-
-    th,
-    td {
-      padding: 14px 18px;
-      border-bottom: 1px solid var(--line);
-      text-align: left;
-    }
-
-    th {
-      color: #33475f;
-      background: #f8fafc;
-      font-size: 14px;
-      font-weight: 900;
-    }
-
-    tr:last-child td {
-      border-bottom: 0;
-    }
-
     @media (max-width: 760px) {
       body { padding: 16px; }
       .grid { grid-template-columns: 1fr; }
@@ -149,60 +122,41 @@
   </style>
 </head>
 <body>
-  <div class="layout">
-    <section class="panel">
-      <div class="panel-header">
-        <h1>프로젝트 입력</h1>
-        <p>한 사람이 여러 프로젝트를 등록하고 관리할 수 있습니다</p>
+  <section class="panel">
+    <div class="panel-header">
+      <h1>프로젝트 입력</h1>
+      <p>같은 ID로 여러 프로젝트를 등록할 수 있습니다</p>
+    </div>
+
+    <form id="projectForm">
+      <div class="grid">
+        <label>
+          본인 ID
+          <input id="studentId" type="text" placeholder="kopo01" required>
+        </label>
+
+        <label>
+          프로젝트 이름
+          <input id="projectName" type="text" placeholder="프로젝트 A" required>
+        </label>
+
+        <label>
+          진행상황
+          <select id="progress" required>
+            <option value="">선택</option>
+            <option value="기획">기획</option>
+            <option value="프로토타입">프로토타입</option>
+            <option value="실제 제작 시작">실제 제작 시작</option>
+            <option value="최종 테스트">최종 테스트</option>
+            <option value="완료">완료</option>
+          </select>
+        </label>
       </div>
 
-      <form id="projectForm">
-        <div class="grid">
-          <label>
-            본인 ID
-            <input id="studentId" type="text" placeholder="kopo01" required>
-          </label>
-
-          <label>
-            프로젝트 이름
-            <input id="projectName" type="text" placeholder="프로젝트 A" required>
-          </label>
-
-          <label>
-            진행상황
-            <select id="progress" required>
-              <option value="">선택</option>
-              <option value="기획">기획</option>
-              <option value="프로토타입">프로토타입</option>
-              <option value="실제 제작 시작">실제 제작 시작</option>
-              <option value="최종 테스트">최종 테스트</option>
-              <option value="완료">완료</option>
-            </select>
-          </label>
-        </div>
-
-        <button type="submit">저장</button>
-        <p id="message"></p>
-      </form>
-    </section>
-
-    <section class="panel">
-      <div class="panel-header">
-        <h1>등록된 프로젝트</h1>
-        <p>같은 ID로 여러 프로젝트가 저장됩니다</p>
-      </div>
-      <table>
-        <thead>
-          <tr>
-            <th>사용자</th>
-            <th>프로젝트</th>
-            <th>진행상황</th>
-          </tr>
-        </thead>
-        <tbody id="projects"></tbody>
-      </table>
-    </section>
-  </div>
+      <button type="submit">저장</button>
+      <p id="message"></p>
+    </form>
+  </section>
 
   <script>
     const projectForm = document.getElementById("projectForm");
@@ -210,7 +164,6 @@
     const projectNameInput = document.getElementById("projectName");
     const progressInput = document.getElementById("progress");
     const message = document.getElementById("message");
-    const projectsTable = document.getElementById("projects");
 
     function getProjectsApiUrl() {
       if (location.protocol === "file:") {
@@ -218,15 +171,6 @@
       }
 
       return "/api/projects";
-    }
-
-    function escapeHtml(value) {
-      return String(value)
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
     }
 
     async function readJson(response) {
@@ -237,23 +181,6 @@
       }
 
       return data;
-    }
-
-    async function loadProjects() {
-      try {
-        const response = await fetch(getProjectsApiUrl());
-        const data = await readJson(response);
-
-        projectsTable.innerHTML = data.projects.map((project) => `
-          <tr>
-            <td>${escapeHtml(project.studentId)}</td>
-            <td>${escapeHtml(project.projectName)}</td>
-            <td>${escapeHtml(project.progress)}</td>
-          </tr>
-        `).join("");
-      } catch (error) {
-        message.textContent = `오류: ${error.message}`;
-      }
     }
 
     projectForm.addEventListener("submit", async (event) => {
@@ -277,13 +204,10 @@
         message.textContent = `${data.project.studentId} / ${data.project.projectName} 저장 완료`;
         projectNameInput.value = "";
         progressInput.value = "";
-        await loadProjects();
       } catch (error) {
         message.textContent = `오류: ${error.message}`;
       }
     });
-
-    loadProjects();
   </script>
 </body>
 </html>
