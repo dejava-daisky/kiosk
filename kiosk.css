@@ -241,6 +241,36 @@ tr:last-child td {
   gap: 10px;
 }
 
+.project-list {
+  display: grid;
+  gap: 10px;
+}
+
+.project-option {
+  display: grid;
+  gap: 6px;
+  width: 100%;
+  height: auto;
+  min-height: 78px;
+  padding: 14px;
+  color: var(--ink);
+  background: white;
+  border: 1px solid var(--line);
+  text-align: left;
+}
+
+.project-option strong {
+  color: var(--blue);
+  font-size: 20px;
+}
+
+.project-option span,
+.project-option em {
+  color: var(--muted);
+  font-style: normal;
+  font-weight: 800;
+}
+
 .comment-card {
   padding: 12px;
   background: white;

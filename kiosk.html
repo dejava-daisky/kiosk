@@ -11,7 +11,7 @@
   <main>
     <section class="header">
       <h1>사용자별 프로젝트 현황</h1>
-      <p>사용자 또는 프로젝트를 터치하면 상세 목업 화면이 열립니다</p>
+      <p>사용자를 터치하면 프로젝트 목록이 열리고, 프로젝트를 고르면 상세 목업 화면이 열립니다</p>
       <div class="deadline-bar">
         <span>지금 시간: <strong id="currentTime">-</strong></span>
         <span>최종 마감: <strong>2026-07-31</strong></span>
@@ -26,7 +26,7 @@
         <thead>
           <tr>
             <th>사용자</th>
-            <th>프로젝트</th>
+            <th>프로젝트 수</th>
             <th>코멘트</th>
           </tr>
         </thead>
@@ -34,6 +34,20 @@
       </table>
     </div>
   </main>
+
+  <div class="modal" id="userModal">
+    <div class="modal-body modal-wide" role="dialog" aria-modal="true" aria-labelledby="userModalTitle">
+      <h2 id="userModalTitle">사용자 프로젝트</h2>
+      <div class="student-id" id="userModalStudentId">-</div>
+      <section class="detail-block">
+        <h3>프로젝트 목록</h3>
+        <div class="project-list" id="userProjectList"></div>
+      </section>
+      <div class="modal-actions">
+        <button id="closeUserModalButton" type="button">닫기</button>
+      </div>
+    </div>
+  </div>
 
   <div class="modal" id="projectModal">
     <div class="modal-body modal-wide" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
@@ -65,6 +79,10 @@
   <script>
     const projectsTable = document.getElementById("projects");
     const message = document.getElementById("message");
+    const userModal = document.getElementById("userModal");
+    const userModalStudentId = document.getElementById("userModalStudentId");
+    const userProjectList = document.getElementById("userProjectList");
+    const closeUserModalButton = document.getElementById("closeUserModalButton");
     const modal = document.getElementById("projectModal");
     const modalStudentId = document.getElementById("modalStudentId");
     const modalProjectName = document.getElementById("modalProjectName");
@@ -75,6 +93,7 @@
     const commentForm = document.getElementById("commentForm");
     const commentInput = document.getElementById("commentInput");
     let latestProjects = [];
+    let latestUsers = [];
     let activeProjectId = null;
 
     function getProjectsApiUrl() {
@@ -159,24 +178,50 @@
         const response = await fetch(getProjectsApiUrl());
         const data = await readJson(response);
         latestProjects = data.projects;
+        latestUsers = groupProjectsByStudent(data.projects);
 
-        projectsTable.innerHTML = data.projects.map((project, index) => `
+        projectsTable.innerHTML = latestUsers.map((user, index) => `
           <tr tabindex="0" data-index="${index}">
-            <td>${escapeHtml(project.studentId)}</td>
+            <td>${escapeHtml(user.studentId)}</td>
             <td>
               <div class="project-cell">
-                <strong>${escapeHtml(project.projectName)}</strong>
-                <span>진행상황: ${escapeHtml(project.progress)}</span>
+                <strong>${user.projects.length}개</strong>
+                <span>${escapeHtml(user.projectNames)}</span>
               </div>
             </td>
-            <td class="feedback-cell">${project.latestComment ? escapeHtml(project.latestComment) : "-"}</td>
+            <td class="feedback-cell">${user.latestComment ? escapeHtml(user.latestComment) : "-"}</td>
           </tr>
         `).join("");
 
-        message.textContent = `${data.projects.length}개 프로젝트 표시 중`;
+        message.textContent = `${latestUsers.length}명 / ${data.projects.length}개 프로젝트 표시 중`;
       } catch (error) {
         message.textContent = `오류: ${error.message}`;
       }
+    }
+
+    function groupProjectsByStudent(projects) {
+      const groups = new Map();
+
+      projects.forEach((project) => {
+        if (!groups.has(project.studentId)) {
+          groups.set(project.studentId, {
+            studentId: project.studentId,
+            projects: [],
+            latestComment: ""
+          });
+        }
+
+        const group = groups.get(project.studentId);
+        group.projects.push(project);
+        if (project.latestComment) {
+          group.latestComment = project.latestComment;
+        }
+      });
+
+      return [...groups.values()].map((group) => ({
+        ...group,
+        projectNames: group.projects.map((project) => project.projectName).join(", ")
+      }));
     }
 
     async function loadProjectDetail(projectId) {
@@ -212,6 +257,22 @@
       modal.classList.add("open");
     }
 
+    function openUserModal(user) {
+      userModalStudentId.textContent = user.studentId;
+      userProjectList.innerHTML = user.projects.map((project) => `
+        <button class="project-option" type="button" data-project-id="${project.id}">
+          <strong>${escapeHtml(project.projectName)}</strong>
+          <span>진행상황: ${escapeHtml(project.progress)}</span>
+          <em>${project.latestComment ? escapeHtml(project.latestComment) : "코멘트 없음"}</em>
+        </button>
+      `).join("");
+      userModal.classList.add("open");
+    }
+
+    function closeUserModal() {
+      userModal.classList.remove("open");
+    }
+
     function closeProjectModal() {
       modal.classList.remove("open");
       activeProjectId = null;
@@ -221,11 +282,11 @@
       const row = event.target.closest("tr");
       if (!row) return;
 
-      const project = latestProjects[Number(row.dataset.index)];
-      if (!project) return;
+      const user = latestUsers[Number(row.dataset.index)];
+      if (!user) return;
 
       try {
-        await openProjectModal(project.id);
+        openUserModal(user);
       } catch (error) {
         message.textContent = `오류: ${error.message}`;
       }
@@ -237,11 +298,23 @@
       if (!row) return;
 
       event.preventDefault();
-      const project = latestProjects[Number(row.dataset.index)];
-      if (!project) return;
+      const user = latestUsers[Number(row.dataset.index)];
+      if (!user) return;
 
       try {
-        await openProjectModal(project.id);
+        openUserModal(user);
+      } catch (error) {
+        message.textContent = `오류: ${error.message}`;
+      }
+    });
+
+    userProjectList.addEventListener("click", async (event) => {
+      const button = event.target.closest("[data-project-id]");
+      if (!button) return;
+
+      try {
+        closeUserModal();
+        await openProjectModal(Number(button.dataset.projectId));
       } catch (error) {
         message.textContent = `오류: ${error.message}`;
       }
@@ -272,10 +345,18 @@
       }
     });
 
+    userModal.addEventListener("click", (event) => {
+      if (event.target === userModal) {
+        closeUserModal();
+      }
+    });
+
+    closeUserModalButton.addEventListener("click", closeUserModal);
     closeModalButton.addEventListener("click", closeProjectModal);
 
     document.addEventListener("keydown", (event) => {
       if (event.key === "Escape") {
+        closeUserModal();
         closeProjectModal();
       }
     });
