@@ -77,6 +77,14 @@ async function ensureProjectTables(connection) {
     "comment_author",
     "comment_author VARCHAR(80) NOT NULL DEFAULT 'anonymous' AFTER project_id"
   );
+
+  await connection.query(`
+    UPDATE project_comment c
+    JOIN student_project p ON p.id = c.project_id
+    SET c.comment_author = p.student_id
+    WHERE c.comment_author = 'anonymous'
+       OR c.comment_author = ''
+  `);
 }
 
 async function ensureSettingTable(connection) {
@@ -212,7 +220,7 @@ async function fetchProjectById(projectId) {
       professorFeedback: String(rows[0].professor_feedback ?? ""),
       comments: comments.map((comment) => ({
         id: Number(comment.id),
-        author: String(comment.comment_author ?? ""),
+        author: String(comment.comment_author ?? rows[0].student_id ?? ""),
         comment: String(comment.comment_text ?? ""),
         createdAt: new Date(comment.created_at).toISOString()
       }))
