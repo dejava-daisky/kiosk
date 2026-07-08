@@ -469,6 +469,11 @@ h1 {
   margin-top: 12px;
 }
 
+.preview-button.warning {
+  color: white;
+  background: #c45628;
+}
+
 .deployment-preview {
   display: none;
   position: fixed;
