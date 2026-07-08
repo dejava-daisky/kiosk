@@ -45,10 +45,6 @@
       <h2 id="userModalTitle">사용자 프로젝트</h2>
       <div class="student-id" id="userModalStudentId">-</div>
       <section class="detail-block">
-        <h3>추천 일정</h3>
-        <div class="schedule-list modal-schedule-list" id="userScheduleList"></div>
-      </section>
-      <section class="detail-block">
         <h3>프로젝트 목록</h3>
         <div class="project-list" id="userProjectList"></div>
       </section>
@@ -64,6 +60,11 @@
       <div class="student-id" id="modalStudentId">-</div>
       <div class="project-name" id="modalProjectName">-</div>
       <div class="student-progress" id="modalProjectProgress">-</div>
+
+      <section class="detail-block">
+        <h3>추천 일정</h3>
+        <div class="schedule-list modal-schedule-list" id="projectScheduleList"></div>
+      </section>
 
       <section class="detail-block" id="deploymentBlock" hidden>
         <h3>배포판</h3>
@@ -122,7 +123,7 @@
     const closeModalButton = document.getElementById("closeModalButton");
     const commentForm = document.getElementById("commentForm");
     const commentInput = document.getElementById("commentInput");
-    const userScheduleList = document.getElementById("userScheduleList");
+    const projectScheduleList = document.getElementById("projectScheduleList");
     let latestProjects = [];
     let latestUsers = [];
     let activeProjectId = null;
@@ -236,7 +237,7 @@
     }
 
     function renderRecommendedSchedule(now = new Date()) {
-      userScheduleList.innerHTML = buildRecommendedSchedule(now, currentDeadline).map((item) => `
+      projectScheduleList.innerHTML = buildRecommendedSchedule(now, currentDeadline).map((item) => `
         <article class="schedule-item">
           <strong>${escapeHtml(item.phase)}</strong>
           <span>${escapeHtml(item.dueDate)}까지</span>
@@ -356,6 +357,7 @@
       modalStudentId.textContent = project.studentId;
       modalProjectName.textContent = project.projectName;
       modalProjectProgress.textContent = `지금 진행중인 ${project.projectName}: 진행상황 ${project.progress}`;
+      renderRecommendedSchedule();
       deploymentBlock.hidden = !activeDeploymentUrl;
       deploymentUrlText.textContent = activeDeploymentUrl;
       modalProfessorFeedback.textContent = project.professorFeedback || "아직 입력된 피드백이 없습니다.";
@@ -366,7 +368,6 @@
 
     function openUserModal(user) {
       userModalStudentId.textContent = user.studentId;
-      renderRecommendedSchedule();
       userProjectList.innerHTML = user.projects.map((project) => `
         <button class="project-option" type="button" data-project-id="${project.id}">
           <strong>${escapeHtml(project.projectName)}</strong>
