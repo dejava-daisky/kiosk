@@ -14,9 +14,14 @@
       <p>사용자를 터치하면 프로젝트 목록이 열리고, 프로젝트를 고르면 상세 목업 화면이 열립니다</p>
       <div class="deadline-bar">
         <span>지금 시간: <strong id="currentTime">-</strong></span>
-        <span>최종 마감: <strong>2026-07-31</strong></span>
+        <span>최종 마감: <strong id="deadlineText">2026-07-31</strong></span>
         <span>남은 시간: <strong id="deadlineCountdown">-</strong></span>
       </div>
+    </section>
+
+    <section class="schedule-panel">
+      <h2>추천 일정</h2>
+      <div class="schedule-list" id="scheduleList"></div>
     </section>
 
     <p id="message">불러오는 중...</p>
@@ -92,9 +97,18 @@
     const closeModalButton = document.getElementById("closeModalButton");
     const commentForm = document.getElementById("commentForm");
     const commentInput = document.getElementById("commentInput");
+    const scheduleList = document.getElementById("scheduleList");
     let latestProjects = [];
     let latestUsers = [];
     let activeProjectId = null;
+    let currentDeadline = "2026-07-31";
+    const recommendedPhases = [
+      "기획",
+      "프로토타입",
+      "실제 제작 시작",
+      "최종 테스트",
+      "최종 정리"
+    ];
 
     function getProjectsApiUrl() {
       if (location.protocol === "file:") {
@@ -102,6 +116,14 @@
       }
 
       return "/api/projects";
+    }
+
+    function getSettingsApiUrl() {
+      if (location.protocol === "file:") {
+        return "http://localhost:703/api/settings";
+      }
+
+      return "/api/settings";
     }
 
     function escapeHtml(value) {
@@ -143,12 +165,51 @@
       return `D-${days} ${hours}h ${minutes}m`;
     }
 
+    function formatDate(date) {
+      return [
+        date.getFullYear(),
+        pad(date.getMonth() + 1),
+        pad(date.getDate())
+      ].join("-");
+    }
+
+    function buildRecommendedSchedule(now, deadlineText) {
+      const [year, month, day] = deadlineText.split("-").map(Number);
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const end = new Date(year, month - 1, day);
+      const remainingDays = Math.max(0, Math.ceil((end - today) / 86400000));
+
+      if (remainingDays === 0) {
+        return recommendedPhases.map((phase) => ({ phase, dueDate: formatDate(end) }));
+      }
+
+      return recommendedPhases.map((phase, index) => {
+        const offset = Math.ceil(((index + 1) * remainingDays) / recommendedPhases.length);
+        const dueDate = new Date(today);
+        dueDate.setDate(today.getDate() + offset);
+
+        return { phase, dueDate: formatDate(dueDate > end ? end : dueDate) };
+      });
+    }
+
     function updateDeadlineClock() {
       const now = new Date();
-      const deadline = new Date(2026, 6, 31, 23, 59, 59);
+      const [year, month, day] = currentDeadline.split("-").map(Number);
+      const deadline = new Date(year, month - 1, day, 23, 59, 59);
 
       document.getElementById("currentTime").textContent = formatCurrentTime(now);
+      document.getElementById("deadlineText").textContent = currentDeadline;
       document.getElementById("deadlineCountdown").textContent = formatDeadlineCountdown(now, deadline);
+      renderRecommendedSchedule(now);
+    }
+
+    function renderRecommendedSchedule(now = new Date()) {
+      scheduleList.innerHTML = buildRecommendedSchedule(now, currentDeadline).map((item) => `
+        <article class="schedule-item">
+          <strong>${escapeHtml(item.phase)}</strong>
+          <span>${escapeHtml(item.dueDate)}까지</span>
+        </article>
+      `).join("");
     }
 
     function formatCommentTime(isoString) {
@@ -194,6 +255,17 @@
         `).join("");
 
         message.textContent = `${latestUsers.length}명 / ${data.projects.length}개 프로젝트 표시 중`;
+      } catch (error) {
+        message.textContent = `오류: ${error.message}`;
+      }
+    }
+
+    async function loadSettings() {
+      try {
+        const response = await fetch(getSettingsApiUrl());
+        const data = await readJson(response);
+        currentDeadline = data.settings.deadline || "2026-07-31";
+        updateDeadlineClock();
       } catch (error) {
         message.textContent = `오류: ${error.message}`;
       }
@@ -362,7 +434,7 @@
     });
 
     loadProjects();
-    updateDeadlineClock();
+    loadSettings();
     setInterval(loadProjects, 30000);
     setInterval(updateDeadlineClock, 1000);
   </script>

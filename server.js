@@ -2,6 +2,8 @@ const http = require("node:http");
 const fs = require("node:fs/promises");
 const path = require("node:path");
 const {
+  fetchSettings,
+  saveDeadline,
   fetchProjects,
   fetchProjectById,
   saveProject,
@@ -10,6 +12,7 @@ const {
   addProjectComment
 } = require("./db");
 const { validateProjectInput, validateProjectCommentInput } = require("./project-input");
+const { validateDeadlineInput } = require("./schedule");
 
 const port = Number(process.env.PORT || 3000);
 
@@ -69,6 +72,25 @@ const server = http.createServer(async (req, res) => {
 
     if (url.pathname === "/kiosk-print.css") {
       await sendCss(res, "kiosk-print.css");
+      return;
+    }
+
+    if (url.pathname === "/api/settings" && req.method === "GET") {
+      const settings = await fetchSettings();
+      sendJson(res, 200, { source: "database", settings });
+      return;
+    }
+
+    if (url.pathname === "/api/settings/deadline" && req.method === "PUT") {
+      const validation = validateDeadlineInput(await readJson(req));
+
+      if (!validation.ok) {
+        sendJson(res, 400, { error: "bad_request", message: validation.error });
+        return;
+      }
+
+      const settings = await saveDeadline(validation.deadline);
+      sendJson(res, 200, { ok: true, settings });
       return;
     }
 

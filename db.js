@@ -59,6 +59,50 @@ async function ensureProjectTables(connection) {
   `);
 }
 
+async function ensureSettingTable(connection) {
+  await connection.query(`
+    CREATE TABLE IF NOT EXISTS app_setting (
+      setting_key VARCHAR(80) PRIMARY KEY,
+      setting_value TEXT NOT NULL,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    )
+  `);
+}
+
+async function fetchSettings() {
+  const connection = await createConnection();
+  try {
+    await ensureSettingTable(connection);
+    const [rows] = await connection.query("SELECT setting_key, setting_value FROM app_setting");
+    const settings = { deadline: "2026-07-31" };
+
+    rows.forEach((row) => {
+      settings[String(row.setting_key)] = String(row.setting_value ?? "");
+    });
+
+    return settings;
+  } finally {
+    await connection.end();
+  }
+}
+
+async function saveDeadline(deadline) {
+  const connection = await createConnection();
+  try {
+    await ensureSettingTable(connection);
+    await connection.execute(
+      `INSERT INTO app_setting (setting_key, setting_value)
+       VALUES ('deadline', ?)
+       ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)`,
+      [deadline]
+    );
+
+    return { deadline };
+  } finally {
+    await connection.end();
+  }
+}
+
 function mapProjectRows(rows) {
   return rows.map((row) => ({
     id: Number(row.id),
@@ -317,6 +361,8 @@ async function checkStudentTable() {
 }
 
 module.exports = {
+  fetchSettings,
+  saveDeadline,
   fetchProjects,
   fetchProjectById,
   saveProject,

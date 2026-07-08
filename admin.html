@@ -83,6 +83,41 @@
       color: var(--teal);
     }
 
+    .deadline-editor {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: end;
+      margin-top: 14px;
+      padding: 12px;
+      background: rgba(255, 255, 255, .14);
+      border: 1px solid rgba(255, 255, 255, .28);
+      border-radius: 8px;
+    }
+
+    .deadline-editor label {
+      color: white;
+      min-width: 220px;
+    }
+
+    .deadline-editor input {
+      min-height: 42px;
+      padding: 0 12px;
+      color: var(--ink);
+      background: white;
+      border: 0;
+      border-radius: 7px;
+      font-weight: 900;
+    }
+
+    .deadline-editor button {
+      width: auto;
+      min-height: 42px;
+      padding: 0 16px;
+      color: #17304f;
+      background: var(--yellow);
+    }
+
     .panel {
       padding: 22px;
     }
@@ -291,9 +326,16 @@
       <p>사용자를 선택한 뒤 프로젝트를 골라 수정하거나 삭제합니다</p>
       <div class="deadline-bar">
         <span>지금 시간: <strong id="currentTime">-</strong></span>
-        <span>최종 마감: <strong>2026-07-31</strong></span>
+        <span>최종 마감: <strong id="deadlineText">2026-07-31</strong></span>
         <span>남은 시간: <strong id="deadlineCountdown">-</strong></span>
       </div>
+      <form class="deadline-editor" id="deadlineForm">
+        <label>
+          최종 마감일
+          <input id="deadlineInput" type="date" required>
+        </label>
+        <button type="submit">마감일 저장</button>
+      </form>
     </section>
 
     <section class="panel">
@@ -373,8 +415,11 @@
     const userModal = document.getElementById("userModal");
     const userProjectList = document.getElementById("userProjectList");
     const closeUserModalButton = document.getElementById("closeUserModalButton");
+    const deadlineForm = document.getElementById("deadlineForm");
+    const deadlineInput = document.getElementById("deadlineInput");
     let latestProjects = [];
     let latestUsers = [];
+    let currentDeadline = "2026-07-31";
 
     function getProjectsApiUrl() {
       if (location.protocol === "file:") {
@@ -382,6 +427,14 @@
       }
 
       return "/api/projects";
+    }
+
+    function getSettingsApiUrl() {
+      if (location.protocol === "file:") {
+        return "http://localhost:703/api/settings";
+      }
+
+      return "/api/settings";
     }
 
     function escapeHtml(value) {
@@ -425,9 +478,11 @@
 
     function updateDeadlineClock() {
       const now = new Date();
-      const deadline = new Date(2026, 6, 31, 23, 59, 59);
+      const [year, month, day] = currentDeadline.split("-").map(Number);
+      const deadline = new Date(year, month - 1, day, 23, 59, 59);
 
       document.getElementById("currentTime").textContent = formatCurrentTime(now);
+      document.getElementById("deadlineText").textContent = currentDeadline;
       document.getElementById("deadlineCountdown").textContent = formatDeadlineCountdown(now, deadline);
     }
 
@@ -518,6 +573,18 @@
       }
     }
 
+    async function loadSettings() {
+      try {
+        const response = await fetch(getSettingsApiUrl());
+        const data = await readJson(response);
+        currentDeadline = data.settings.deadline || "2026-07-31";
+        deadlineInput.value = currentDeadline;
+        updateDeadlineClock();
+      } catch (error) {
+        message.textContent = `오류: ${error.message}`;
+      }
+    }
+
     projectForm.addEventListener("submit", async (event) => {
       event.preventDefault();
 
@@ -540,6 +607,24 @@
         message.textContent = `${data.project.studentId} / ${data.project.projectName} 저장 완료`;
         resetForm();
         await loadProjects();
+      } catch (error) {
+        message.textContent = `오류: ${error.message}`;
+      }
+    });
+
+    deadlineForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      try {
+        const response = await fetch(`${getSettingsApiUrl()}/deadline`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ deadline: deadlineInput.value })
+        });
+        const data = await readJson(response);
+        currentDeadline = data.settings.deadline;
+        message.textContent = `최종 마감일 저장 완료: ${currentDeadline}`;
+        updateDeadlineClock();
       } catch (error) {
         message.textContent = `오류: ${error.message}`;
       }
@@ -610,7 +695,7 @@
     });
 
     loadProjects();
-    updateDeadlineClock();
+    loadSettings();
     setInterval(updateDeadlineClock, 1000);
   </script>
 </body>
