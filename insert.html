@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>진행상황 입력</title>
+  <title>프로젝트 입력</title>
   <style>
     :root {
       --bg: #eef3f7;
@@ -21,8 +21,6 @@
     body {
       min-height: 100vh;
       margin: 0;
-      display: grid;
-      place-items: center;
       padding: 24px;
       color: var(--ink);
       background:
@@ -33,8 +31,14 @@
       font-family: "Segoe UI", "Pretendard", "Noto Sans KR", Arial, sans-serif;
     }
 
+    .layout {
+      width: min(960px, 100%);
+      margin: 0 auto;
+      display: grid;
+      gap: 18px;
+    }
+
     .panel {
-      width: min(460px, 100%);
       overflow: hidden;
       background: var(--panel);
       border: 1px solid var(--line);
@@ -53,7 +57,6 @@
       margin: 0;
       font-size: 30px;
       line-height: 1.1;
-      letter-spacing: 0;
     }
 
     .panel-header p {
@@ -66,6 +69,12 @@
       display: grid;
       gap: 18px;
       padding: 24px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 16px;
     }
 
     label {
@@ -96,19 +105,11 @@
     }
 
     button {
-      margin-top: 4px;
       color: white;
       background: var(--teal);
       border: 0;
       font-weight: 950;
       cursor: pointer;
-    }
-
-    input:focus-visible,
-    select:focus-visible,
-    button:focus-visible {
-      outline: 3px solid rgba(0, 138, 146, .28);
-      outline-offset: 2px;
     }
 
     #message {
@@ -117,73 +118,172 @@
       color: var(--blue);
       font-weight: 900;
     }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th,
+    td {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+    }
+
+    th {
+      color: #33475f;
+      background: #f8fafc;
+      font-size: 14px;
+      font-weight: 900;
+    }
+
+    tr:last-child td {
+      border-bottom: 0;
+    }
+
+    @media (max-width: 760px) {
+      body { padding: 16px; }
+      .grid { grid-template-columns: 1fr; }
+    }
   </style>
 </head>
 <body>
-  <section class="panel">
-    <div class="panel-header">
-      <h1>진행상황 입력</h1>
-      <p>본인 ID와 현재 상태만 저장합니다</p>
-    </div>
+  <div class="layout">
+    <section class="panel">
+      <div class="panel-header">
+        <h1>프로젝트 입력</h1>
+        <p>한 사람이 여러 프로젝트를 등록하고 관리할 수 있습니다</p>
+      </div>
 
-    <form id="studentForm">
-      <label>
-        본인 ID
-        <input id="id" name="id" type="text" placeholder="kopo01" required>
-      </label>
+      <form id="projectForm">
+        <div class="grid">
+          <label>
+            본인 ID
+            <input id="studentId" type="text" placeholder="kopo01" required>
+          </label>
 
-      <label>
-        진행상황
-        <select id="progress" name="progress" required>
-          <option value="">선택</option>
-          <option value="기획">기획</option>
-          <option value="프로토타입">프로토타입</option>
-          <option value="실제 제작 시작">실제 제작 시작</option>
-          <option value="최종 테스트">최종 테스트</option>
-          <option value="완료">완료</option>
-        </select>
-      </label>
+          <label>
+            프로젝트 이름
+            <input id="projectName" type="text" placeholder="프로젝트 A" required>
+          </label>
 
-      <button type="submit">저장</button>
-      <p id="message"></p>
-    </form>
-  </section>
+          <label>
+            진행상황
+            <select id="progress" required>
+              <option value="">선택</option>
+              <option value="기획">기획</option>
+              <option value="프로토타입">프로토타입</option>
+              <option value="실제 제작 시작">실제 제작 시작</option>
+              <option value="최종 테스트">최종 테스트</option>
+              <option value="완료">완료</option>
+            </select>
+          </label>
+        </div>
+
+        <button type="submit">저장</button>
+        <p id="message"></p>
+      </form>
+    </section>
+
+    <section class="panel">
+      <div class="panel-header">
+        <h1>등록된 프로젝트</h1>
+        <p>같은 ID로 여러 프로젝트가 저장됩니다</p>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>사용자</th>
+            <th>프로젝트</th>
+            <th>진행상황</th>
+          </tr>
+        </thead>
+        <tbody id="projects"></tbody>
+      </table>
+    </section>
+  </div>
 
   <script>
-    function getApiUrl() {
+    const projectForm = document.getElementById("projectForm");
+    const studentIdInput = document.getElementById("studentId");
+    const projectNameInput = document.getElementById("projectName");
+    const progressInput = document.getElementById("progress");
+    const message = document.getElementById("message");
+    const projectsTable = document.getElementById("projects");
+
+    function getProjectsApiUrl() {
       if (location.protocol === "file:") {
-        return "http://localhost:703/api/students";
+        return "http://localhost:703/api/projects";
       }
 
-      return "/api/students";
+      return "/api/projects";
     }
 
-    document.getElementById("studentForm").addEventListener("submit", async (event) => {
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    async function readJson(response) {
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || data.error || "저장하지 못했습니다.");
+      }
+
+      return data;
+    }
+
+    async function loadProjects() {
+      try {
+        const response = await fetch(getProjectsApiUrl());
+        const data = await readJson(response);
+
+        projectsTable.innerHTML = data.projects.map((project) => `
+          <tr>
+            <td>${escapeHtml(project.studentId)}</td>
+            <td>${escapeHtml(project.projectName)}</td>
+            <td>${escapeHtml(project.progress)}</td>
+          </tr>
+        `).join("");
+      } catch (error) {
+        message.textContent = `오류: ${error.message}`;
+      }
+    }
+
+    projectForm.addEventListener("submit", async (event) => {
       event.preventDefault();
 
-      const message = document.getElementById("message");
       const payload = {
-        id: document.getElementById("id").value,
-        progress: document.getElementById("progress").value
+        studentId: studentIdInput.value,
+        projectName: projectNameInput.value,
+        progress: progressInput.value,
+        professorFeedback: ""
       };
 
       try {
-        const response = await fetch(getApiUrl(), {
+        const response = await fetch(getProjectsApiUrl(), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload)
         });
-        const data = await response.json();
 
-        if (!response.ok) {
-          throw new Error(data.message || "저장하지 못했습니다.");
-        }
-
-        message.textContent = "저장했습니다.";
+        const data = await readJson(response);
+        message.textContent = `${data.project.studentId} / ${data.project.projectName} 저장 완료`;
+        projectNameInput.value = "";
+        progressInput.value = "";
+        await loadProjects();
       } catch (error) {
         message.textContent = `오류: ${error.message}`;
       }
     });
+
+    loadProjects();
   </script>
 </body>
 </html>

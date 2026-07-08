@@ -10,8 +10,13 @@
 <body>
   <main>
     <section class="header">
-      <h1>사용자별 진행 상황</h1>
-      <p>사용자 ID를 터치하면 개인 진행상황을 확인할 수 있습니다</p>
+      <h1>사용자별 프로젝트 현황</h1>
+      <p>사용자 또는 프로젝트를 터치하면 상세 목업 화면이 열립니다</p>
+      <div class="deadline-bar">
+        <span>지금 시간: <strong id="currentTime">-</strong></span>
+        <span>최종 마감: <strong>2026-07-31</strong></span>
+        <span>남은 시간: <strong id="deadlineCountdown">-</strong></span>
+      </div>
     </section>
 
     <p id="message">불러오는 중...</p>
@@ -21,48 +26,63 @@
         <thead>
           <tr>
             <th>사용자</th>
-            <th>진행 상황</th>
+            <th>프로젝트</th>
+            <th>코멘트</th>
           </tr>
         </thead>
-        <tbody id="students"></tbody>
+        <tbody id="projects"></tbody>
       </table>
     </div>
   </main>
 
-  <div class="modal" id="studentModal">
-    <div class="modal_body" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
-      <h2 id="modalTitle">개인 진행 상황</h2>
+  <div class="modal" id="projectModal">
+    <div class="modal-body modal-wide" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <h2 id="modalTitle">프로젝트 목업</h2>
       <div class="student-id" id="modalStudentId">-</div>
-      <div class="student-progress" id="modalStudentProgress">-</div>
-      <div class="progress-bar modal-progress-bar" aria-hidden="true">
-        <div class="progress-fill" id="modalProgressFill"></div>
-      </div>
+      <div class="project-name" id="modalProjectName">-</div>
+      <div class="student-progress" id="modalProjectProgress">-</div>
+
+      <section class="detail-block">
+        <h3>피드백 (교수님)</h3>
+        <p id="modalProfessorFeedback" class="detail-copy">아직 입력된 피드백이 없습니다.</p>
+      </section>
+
+      <section class="detail-block">
+        <h3>코멘트</h3>
+        <div class="comment-list" id="modalCommentList"></div>
+        <form id="commentForm" class="comment-form">
+          <textarea id="commentInput" rows="3" placeholder="누구나 코멘트를 남길 수 있습니다"></textarea>
+          <button type="submit">코멘트 등록</button>
+        </form>
+      </section>
+
       <div class="modal-actions">
-        <span class="modal-countdown" id="modalCountdown">(10초)</span>
         <button id="closeModalButton" type="button">닫기</button>
       </div>
     </div>
   </div>
 
   <script>
-    const progressPercent = {
-      "기획": 0,
-      "프로토타입": 25,
-      "실제 제작 시작": 50,
-      "최종 테스트": 75,
-      "완료": 100
-    };
+    const projectsTable = document.getElementById("projects");
+    const message = document.getElementById("message");
+    const modal = document.getElementById("projectModal");
+    const modalStudentId = document.getElementById("modalStudentId");
+    const modalProjectName = document.getElementById("modalProjectName");
+    const modalProjectProgress = document.getElementById("modalProjectProgress");
+    const modalProfessorFeedback = document.getElementById("modalProfessorFeedback");
+    const modalCommentList = document.getElementById("modalCommentList");
+    const closeModalButton = document.getElementById("closeModalButton");
+    const commentForm = document.getElementById("commentForm");
+    const commentInput = document.getElementById("commentInput");
+    let latestProjects = [];
+    let activeProjectId = null;
 
-    function getProgressPercent(progress) {
-      return progressPercent[progress] ?? 0;
-    }
-
-    function getApiUrl() {
+    function getProjectsApiUrl() {
       if (location.protocol === "file:") {
-        return "http://localhost:703/api/students";
+        return "http://localhost:703/api/projects";
       }
 
-      return "/api/students";
+      return "/api/projects";
     }
 
     function escapeHtml(value) {
@@ -74,125 +94,196 @@
         .replaceAll("'", "&#039;");
     }
 
+    function pad(value) {
+      return String(value).padStart(2, "0");
+    }
+
+    function formatCurrentTime(date) {
+      return [
+        date.getFullYear(),
+        pad(date.getMonth() + 1),
+        pad(date.getDate())
+      ].join("-") + " " + [
+        pad(date.getHours()),
+        pad(date.getMinutes())
+      ].join(":");
+    }
+
+    function formatDeadlineCountdown(now, deadline) {
+      const diffMs = deadline.getTime() - now.getTime();
+
+      if (diffMs <= 0) {
+        return "D-day";
+      }
+
+      const totalMinutes = Math.floor(diffMs / 60000);
+      const days = Math.floor(totalMinutes / 1440);
+      const hours = Math.floor((totalMinutes % 1440) / 60);
+      const minutes = totalMinutes % 60;
+
+      return `D-${days} ${hours}h ${minutes}m`;
+    }
+
+    function updateDeadlineClock() {
+      const now = new Date();
+      const deadline = new Date(2026, 6, 31, 23, 59, 59);
+
+      document.getElementById("currentTime").textContent = formatCurrentTime(now);
+      document.getElementById("deadlineCountdown").textContent = formatDeadlineCountdown(now, deadline);
+    }
+
+    function formatCommentTime(isoString) {
+      const date = new Date(isoString);
+      return formatCurrentTime(date);
+    }
+
     async function readJson(response) {
       const contentType = response.headers.get("content-type") || "";
 
       if (!contentType.includes("application/json")) {
         const text = await response.text();
-        const preview = text.trim().slice(0, 40);
-        throw new Error(`API가 JSON이 아닌 응답을 반환했습니다: ${preview}`);
+        throw new Error(text.trim().slice(0, 50) || "JSON 응답이 아닙니다.");
       }
 
-      return response.json();
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || data.error || "요청을 처리하지 못했습니다.");
+      }
+
+      return data;
     }
 
-    async function loadStudents() {
-      const message = document.getElementById("message");
-      const tbody = document.getElementById("students");
-
+    async function loadProjects() {
       try {
-        const response = await fetch(getApiUrl());
+        const response = await fetch(getProjectsApiUrl());
         const data = await readJson(response);
+        latestProjects = data.projects;
 
-        if (!response.ok) {
-          throw new Error(data.message || data.error || "데이터를 불러오지 못했습니다.");
-        }
+        projectsTable.innerHTML = data.projects.map((project, index) => `
+          <tr tabindex="0" data-index="${index}">
+            <td>${escapeHtml(project.studentId)}</td>
+            <td>
+              <div class="project-cell">
+                <strong>${escapeHtml(project.projectName)}</strong>
+                <span>진행상황: ${escapeHtml(project.progress)}</span>
+              </div>
+            </td>
+            <td class="feedback-cell">${project.latestComment ? escapeHtml(project.latestComment) : "-"}</td>
+          </tr>
+        `).join("");
 
-        tbody.innerHTML = data.students.map((student) => {
-          const percent = getProgressPercent(student.progress);
-
-          return `
-            <tr tabindex="0" data-id="${escapeHtml(student.id)}" data-progress="${escapeHtml(student.progress)}" data-percent="${percent}">
-              <td>${escapeHtml(student.id)}</td>
-              <td>
-                <div class="progress-cell">
-                  <span>${escapeHtml(student.progress)}</span>
-                  <div class="progress-bar" aria-label="${escapeHtml(student.progress)} ${percent}%">
-                    <div class="progress-fill" style="width: ${percent}%"></div>
-                  </div>
-                </div>
-              </td>
-            </tr>
-          `;
-        }).join("");
-
-        message.textContent = `${data.students.length}명 표시 중`;
+        message.textContent = `${data.projects.length}개 프로젝트 표시 중`;
       } catch (error) {
         message.textContent = `오류: ${error.message}`;
       }
     }
 
-    const modal = document.getElementById("studentModal");
-    const closeModalButton = document.getElementById("closeModalButton");
-    const modalStudentId = document.getElementById("modalStudentId");
-    const modalStudentProgress = document.getElementById("modalStudentProgress");
-    const modalProgressFill = document.getElementById("modalProgressFill");
-    const modalCountdown = document.getElementById("modalCountdown");
-    const studentsTable = document.getElementById("students");
-    let modalTimer = null;
-    let modalRemainingSeconds = 10;
+    async function loadProjectDetail(projectId) {
+      const response = await fetch(`${getProjectsApiUrl()}/${projectId}`);
+      const data = await readJson(response);
+      return data.project;
+    }
 
-    function stopModalTimer() {
-      if (modalTimer) {
-        clearInterval(modalTimer);
-        modalTimer = null;
+    function renderComments(comments) {
+      if (!comments.length) {
+        modalCommentList.innerHTML = '<p class="empty-copy">아직 등록된 코멘트가 없습니다.</p>';
+        return;
       }
+
+      modalCommentList.innerHTML = comments.map((comment) => `
+        <article class="comment-card">
+          <div class="comment-time">${escapeHtml(formatCommentTime(comment.createdAt))}</div>
+          <div class="comment-copy">${escapeHtml(comment.comment)}</div>
+        </article>
+      `).join("");
     }
 
-    function startModalTimer() {
-      stopModalTimer();
-      modalRemainingSeconds = 10;
-      modalCountdown.textContent = `(${modalRemainingSeconds}초)`;
+    async function openProjectModal(projectId) {
+      const project = await loadProjectDetail(projectId);
 
-      modalTimer = setInterval(() => {
-        modalRemainingSeconds -= 1;
-        modalCountdown.textContent = `(${modalRemainingSeconds}초)`;
-
-        if (modalRemainingSeconds <= 0) {
-          closeStudentModal();
-        }
-      }, 1000);
-    }
-
-    function openStudentModal(row) {
-      modalStudentId.textContent = row.dataset.id;
-      modalStudentProgress.textContent = row.dataset.progress;
-      modalProgressFill.style.width = `${row.dataset.percent}%`;
+      activeProjectId = project.id;
+      modalStudentId.textContent = project.studentId;
+      modalProjectName.textContent = project.projectName;
+      modalProjectProgress.textContent = `지금 진행중인 ${project.projectName}: 진행상황 ${project.progress}`;
+      modalProfessorFeedback.textContent = project.professorFeedback || "아직 입력된 피드백이 없습니다.";
+      renderComments(project.comments);
+      commentInput.value = "";
       modal.classList.add("open");
-      startModalTimer();
     }
 
-    function closeStudentModal() {
-      stopModalTimer();
+    function closeProjectModal() {
       modal.classList.remove("open");
+      activeProjectId = null;
     }
 
-    studentsTable.addEventListener("click", (event) => {
+    projectsTable.addEventListener("click", async (event) => {
       const row = event.target.closest("tr");
-      if (row) openStudentModal(row);
+      if (!row) return;
+
+      const project = latestProjects[Number(row.dataset.index)];
+      if (!project) return;
+
+      try {
+        await openProjectModal(project.id);
+      } catch (error) {
+        message.textContent = `오류: ${error.message}`;
+      }
     });
 
-    studentsTable.addEventListener("keydown", (event) => {
+    projectsTable.addEventListener("keydown", async (event) => {
       if (event.key !== "Enter" && event.key !== " ") return;
       const row = event.target.closest("tr");
-      if (row) {
-        event.preventDefault();
-        openStudentModal(row);
+      if (!row) return;
+
+      event.preventDefault();
+      const project = latestProjects[Number(row.dataset.index)];
+      if (!project) return;
+
+      try {
+        await openProjectModal(project.id);
+      } catch (error) {
+        message.textContent = `오류: ${error.message}`;
+      }
+    });
+
+    commentForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      if (!activeProjectId) return;
+
+      try {
+        await readJson(await fetch(`${getProjectsApiUrl()}/${activeProjectId}/comments`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ comment: commentInput.value })
+        }));
+
+        await openProjectModal(activeProjectId);
+        await loadProjects();
+      } catch (error) {
+        message.textContent = `오류: ${error.message}`;
       }
     });
 
     modal.addEventListener("click", (event) => {
-      if (event.target === modal) closeStudentModal();
+      if (event.target === modal) {
+        closeProjectModal();
+      }
     });
 
-    closeModalButton.addEventListener("click", closeStudentModal);
+    closeModalButton.addEventListener("click", closeProjectModal);
 
     document.addEventListener("keydown", (event) => {
-      if (event.key === "Escape") closeStudentModal();
+      if (event.key === "Escape") {
+        closeProjectModal();
+      }
     });
 
-    loadStudents();
-    setInterval(loadStudents, 30000);
+    loadProjects();
+    updateDeadlineClock();
+    setInterval(loadProjects, 30000);
+    setInterval(updateDeadlineClock, 1000);
   </script>
 </body>
 </html>

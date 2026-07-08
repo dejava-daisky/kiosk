@@ -36,3 +36,15 @@ test("keeps progress as display text because database column is varchar", () => 
     }
   ]);
 });
+
+test("maps optional admin comment for kiosk feedback display", () => {
+  const rows = [{ id: "kopo04", progress: "기획", comment: "README 보강하시오" }];
+
+  assert.deepEqual(mapStudentRows(rows), [
+    {
+      id: "kopo04",
+      progress: "기획",
+      comment: "README 보강하시오"
+    }
+  ]);
+});

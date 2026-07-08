@@ -5,7 +5,7 @@
   --panel: #ffffff;
   --line: #d6dee8;
   --blue: #245b9d;
-  --teal: #008a92;
+  --teal: #0f6c73;
   --yellow: #f0c34e;
 }
 
@@ -55,6 +55,26 @@ h1 {
   font-weight: 700;
 }
 
+.deadline-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.deadline-bar span {
+  padding: 9px 12px;
+  color: #20344d;
+  background: rgba(255, 255, 255, .92);
+  border-radius: 7px;
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.deadline-bar strong {
+  color: var(--teal);
+}
+
 #message {
   margin: 0 0 14px;
   color: var(--muted);
@@ -76,10 +96,10 @@ table {
 
 th,
 td {
-  padding: 20px 22px;
+  padding: 18px 20px;
   text-align: left;
   border-bottom: 1px solid var(--line);
-  font-size: clamp(20px, 2.2vw, 30px);
+  vertical-align: top;
 }
 
 th {
@@ -105,13 +125,31 @@ tbody tr:active {
 }
 
 td:first-child {
-  width: 32%;
+  width: 20%;
   color: var(--blue);
+  font-size: clamp(20px, 2vw, 28px);
   font-weight: 950;
 }
 
 tr:last-child td {
   border-bottom: 0;
+}
+
+.project-cell {
+  display: grid;
+  gap: 8px;
+  font-size: 18px;
+}
+
+.project-cell strong {
+  font-size: clamp(18px, 1.9vw, 26px);
+}
+
+.feedback-cell {
+  color: #7a3b00;
+  font-size: clamp(16px, 1.8vw, 22px);
+  font-weight: 900;
+  line-height: 1.35;
 }
 
 .modal {
@@ -128,7 +166,7 @@ tr:last-child td {
   place-items: center;
 }
 
-.modal_body {
+.modal-body {
   width: min(460px, 100%);
   padding: 28px;
   background: white;
@@ -137,19 +175,32 @@ tr:last-child td {
   box-shadow: 0 22px 60px rgba(0, 0, 0, .24);
 }
 
-.modal_body h2 {
-  margin: 0 0 16px;
+.modal-wide {
+  width: min(620px, 100%);
+  max-height: calc(100vh - 48px);
+  overflow: auto;
+}
+
+.modal-body h2 {
+  margin: 0 0 14px;
   color: var(--muted);
   font-size: 18px;
   font-weight: 900;
 }
 
 .student-id {
-  margin: 0 0 14px;
+  margin: 0 0 10px;
   color: var(--blue);
-  font-size: 46px;
+  font-size: 42px;
   font-weight: 950;
   line-height: 1;
+}
+
+.project-name {
+  margin: 0 0 12px;
+  color: var(--ink);
+  font-size: 28px;
+  font-weight: 900;
 }
 
 .student-progress {
@@ -159,49 +210,77 @@ tr:last-child td {
   background: #f8fafc;
   border: 1px solid var(--line);
   border-radius: 7px;
-  font-size: 28px;
+  font-size: 22px;
   font-weight: 900;
-  line-height: 1.25;
+  line-height: 1.35;
 }
 
-.progress-cell {
+.detail-block {
+  margin-top: 16px;
+  padding: 16px;
+  background: #f8fafc;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+}
+
+.detail-block h3 {
+  margin: 0 0 10px;
+  font-size: 16px;
+}
+
+.detail-copy,
+.empty-copy {
+  margin: 0;
+  color: var(--muted);
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+.comment-list {
   display: grid;
   gap: 10px;
 }
 
-.progress-bar {
-  width: 100%;
-  height: 16px;
-  overflow: hidden;
-  background: #e5edf3;
-  border: 1px solid #c8d4df;
-  border-radius: 999px;
+.comment-card {
+  padding: 12px;
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 7px;
 }
 
-.progress-fill {
-  width: 0;
-  height: 100%;
-  background: linear-gradient(90deg, var(--teal), var(--blue));
-  border-radius: inherit;
+.comment-time {
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 900;
 }
 
-.modal-progress-bar {
-  height: 18px;
+.comment-copy {
+  margin-top: 6px;
+  color: var(--ink);
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+.comment-form {
+  display: grid;
+  gap: 10px;
   margin-top: 14px;
+}
+
+.comment-form textarea {
+  width: 100%;
+  min-height: 92px;
+  padding: 12px;
+  border: 1px solid #becad7;
+  border-radius: 7px;
+  resize: vertical;
+  font: inherit;
 }
 
 .modal-actions {
   display: flex;
-  align-items: center;
-  gap: 12px;
   justify-content: flex-end;
-  margin-top: 22px;
-}
-
-.modal-countdown {
-  color: var(--muted);
-  font-size: 18px;
-  font-weight: 900;
+  margin-top: 18px;
 }
 
 button {
@@ -216,12 +295,13 @@ button {
   cursor: pointer;
 }
 
-button:focus-visible {
-  outline: 3px solid rgba(0, 138, 146, .28);
+button:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid rgba(15, 108, 115, .28);
   outline-offset: 2px;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 720px) {
   main {
     width: min(100% - 24px, 1120px);
     padding: 16px 0;
@@ -233,6 +313,6 @@ button:focus-visible {
 
   th,
   td {
-    padding: 16px;
+    padding: 14px;
   }
 }

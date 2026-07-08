@@ -1,0 +1,646 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>관리자 페이지</title>
+  <style>
+    :root {
+      --bg: #eef3f7;
+      --ink: #17212b;
+      --muted: #647182;
+      --panel: #ffffff;
+      --line: #d6dee8;
+      --blue: #245b9d;
+      --teal: #0f6c73;
+      --red: #b23b3b;
+      --yellow: #f0c34e;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      padding: 28px;
+      color: var(--ink);
+      background:
+        linear-gradient(90deg, rgba(36, 91, 157, .06) 1px, transparent 1px),
+        linear-gradient(180deg, rgba(36, 91, 157, .05) 1px, transparent 1px),
+        var(--bg);
+      background-size: 40px 40px;
+      font-family: "Segoe UI", "Noto Sans KR", Arial, sans-serif;
+    }
+
+    main {
+      width: min(1120px, 100%);
+      margin: 0 auto;
+    }
+
+    .header,
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 14px 34px rgba(23, 33, 43, .1);
+    }
+
+    .header {
+      margin-bottom: 18px;
+      padding: 24px;
+      color: white;
+      background: #1f3c63;
+      border-bottom: 6px solid var(--yellow);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 32px;
+    }
+
+    .header p {
+      margin: 8px 0 0;
+      color: rgba(255, 255, 255, .78);
+      font-weight: 800;
+    }
+
+    .deadline-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .deadline-bar span {
+      padding: 9px 12px;
+      color: #20344d;
+      background: rgba(255, 255, 255, .92);
+      border-radius: 7px;
+      font-weight: 900;
+    }
+
+    .deadline-bar strong {
+      color: var(--teal);
+    }
+
+    .panel {
+      padding: 22px;
+    }
+
+    form {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+
+    label {
+      display: grid;
+      gap: 7px;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 900;
+    }
+
+    input,
+    select,
+    textarea,
+    button {
+      width: 100%;
+      min-height: 46px;
+      border-radius: 7px;
+      font: inherit;
+    }
+
+    input,
+    select,
+    textarea {
+      padding: 12px 14px;
+      color: var(--ink);
+      background: #fbfcfe;
+      border: 1px solid #becad7;
+      font-weight: 800;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 92px;
+    }
+
+    .wide {
+      grid-column: 1 / -1;
+    }
+
+    .button-row {
+      display: flex;
+      gap: 10px;
+      grid-column: 1 / -1;
+    }
+
+    button {
+      color: white;
+      border: 0;
+      font-weight: 900;
+      cursor: pointer;
+    }
+
+    .save-button { background: var(--teal); }
+    .delete-button { background: var(--red); }
+    .ghost-button { background: var(--blue); }
+
+    #message {
+      min-height: 22px;
+      margin: 0 0 14px;
+      color: var(--blue);
+      font-weight: 900;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      overflow: hidden;
+      border-radius: 8px;
+    }
+
+    th,
+    td {
+      padding: 16px;
+      border-bottom: 1px solid #dce4ed;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      color: #33475f;
+      background: #f8fafc;
+      font-size: 14px;
+      font-weight: 900;
+    }
+
+    tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .project-cell {
+      display: grid;
+      gap: 6px;
+    }
+
+    .feedback-cell {
+      color: #7a3b00;
+      font-weight: 900;
+      line-height: 1.35;
+    }
+
+    .row-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .small-button {
+      min-height: 36px;
+      padding: 0 12px;
+    }
+
+    .student-id-button {
+      width: auto;
+      min-height: auto;
+      padding: 0;
+      color: var(--blue);
+      background: transparent;
+      border: 0;
+      font-weight: 950;
+      text-decoration: underline;
+      text-underline-offset: 4px;
+    }
+
+    .modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      padding: 24px;
+      background: rgba(13, 22, 34, .58);
+      z-index: 20;
+    }
+
+    .modal.open {
+      display: grid;
+      place-items: center;
+    }
+
+    .modal-body {
+      width: min(620px, 100%);
+      max-height: calc(100vh - 48px);
+      overflow: auto;
+      padding: 24px;
+      background: white;
+      border: 1px solid #d6dee8;
+      border-radius: 8px;
+      box-shadow: 0 22px 60px rgba(0, 0, 0, .24);
+    }
+
+    .modal-body h2 {
+      margin: 0 0 12px;
+    }
+
+    .activity-list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .activity-item {
+      display: grid;
+      grid-template-columns: 150px 88px 1fr;
+      gap: 12px;
+      padding: 14px;
+      background: #f8fafc;
+      border: 1px solid #dce4ed;
+      border-radius: 7px;
+    }
+
+    .activity-time,
+    .activity-id {
+      color: var(--muted);
+      font-weight: 900;
+    }
+
+    .activity-title {
+      color: var(--ink);
+      font-weight: 950;
+    }
+
+    .activity-detail {
+      grid-column: 3;
+      color: var(--blue);
+      font-weight: 900;
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 18px;
+    }
+
+    @media (max-width: 800px) {
+      body { padding: 16px; }
+      form { grid-template-columns: 1fr; }
+      .activity-item { grid-template-columns: 1fr; }
+      .activity-detail { grid-column: auto; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="header">
+      <h1>관리자 페이지</h1>
+      <p>키오스크 구조와 같은 프로젝트 목록을 보면서 수정하고 삭제할 수 있습니다</p>
+      <div class="deadline-bar">
+        <span>지금 시간: <strong id="currentTime">-</strong></span>
+        <span>최종 마감: <strong>2026-07-31</strong></span>
+        <span>남은 시간: <strong id="deadlineCountdown">-</strong></span>
+      </div>
+    </section>
+
+    <section class="panel">
+      <form id="projectForm">
+        <input id="projectId" type="hidden">
+
+        <label>
+          학생 ID
+          <input id="studentId" type="text" placeholder="kopo01" required>
+        </label>
+
+        <label>
+          프로젝트 이름
+          <input id="projectName" type="text" placeholder="프로젝트 A" required>
+        </label>
+
+        <label>
+          진행상황
+          <select id="progress" required>
+            <option value="">선택</option>
+            <option value="기획">기획</option>
+            <option value="프로토타입">프로토타입</option>
+            <option value="실제 제작 시작">실제 제작 시작</option>
+            <option value="최종 테스트">최종 테스트</option>
+            <option value="완료">완료</option>
+          </select>
+        </label>
+
+        <label class="wide">
+          피드백 (교수님)
+          <textarea id="professorFeedback" placeholder="교수 피드백을 입력하세요"></textarea>
+        </label>
+
+        <div class="button-row">
+          <button class="save-button" type="submit">저장</button>
+          <button class="delete-button" id="deleteButton" type="button">삭제</button>
+          <button class="ghost-button" id="resetButton" type="button">초기화</button>
+        </div>
+      </form>
+
+      <p id="message"></p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>사용자</th>
+            <th>프로젝트</th>
+            <th>코멘트</th>
+            <th>관리</th>
+          </tr>
+        </thead>
+        <tbody id="projects"></tbody>
+      </table>
+    </section>
+  </main>
+
+  <div class="modal" id="activityModal">
+    <div class="modal-body" role="dialog" aria-modal="true" aria-labelledby="activityModalTitle">
+      <h2 id="activityModalTitle">학생 활동</h2>
+      <div class="activity-list" id="activityList"></div>
+      <div class="modal-actions">
+        <button class="ghost-button small-button" id="closeActivityModalButton" type="button">닫기</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const projectForm = document.getElementById("projectForm");
+    const projectIdInput = document.getElementById("projectId");
+    const studentIdInput = document.getElementById("studentId");
+    const projectNameInput = document.getElementById("projectName");
+    const progressInput = document.getElementById("progress");
+    const professorFeedbackInput = document.getElementById("professorFeedback");
+    const deleteButton = document.getElementById("deleteButton");
+    const resetButton = document.getElementById("resetButton");
+    const message = document.getElementById("message");
+    const projectsTable = document.getElementById("projects");
+    const activityModal = document.getElementById("activityModal");
+    const activityList = document.getElementById("activityList");
+    const closeActivityModalButton = document.getElementById("closeActivityModalButton");
+    let latestProjects = [];
+
+    function getProjectsApiUrl() {
+      if (location.protocol === "file:") {
+        return "http://localhost:703/api/projects";
+      }
+
+      return "/api/projects";
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function pad(value) {
+      return String(value).padStart(2, "0");
+    }
+
+    function formatCurrentTime(date) {
+      return [
+        date.getFullYear(),
+        pad(date.getMonth() + 1),
+        pad(date.getDate())
+      ].join("-") + " " + [
+        pad(date.getHours()),
+        pad(date.getMinutes())
+      ].join(":");
+    }
+
+    function formatDeadlineCountdown(now, deadline) {
+      const diffMs = deadline.getTime() - now.getTime();
+
+      if (diffMs <= 0) {
+        return "D-day";
+      }
+
+      const totalMinutes = Math.floor(diffMs / 60000);
+      const days = Math.floor(totalMinutes / 1440);
+      const hours = Math.floor((totalMinutes % 1440) / 60);
+      const minutes = totalMinutes % 60;
+
+      return `D-${days} ${hours}h ${minutes}m`;
+    }
+
+    function updateDeadlineClock() {
+      const now = new Date();
+      const deadline = new Date(2026, 6, 31, 23, 59, 59);
+
+      document.getElementById("currentTime").textContent = formatCurrentTime(now);
+      document.getElementById("deadlineCountdown").textContent = formatDeadlineCountdown(now, deadline);
+    }
+
+    function formatMinute(date) {
+      return formatCurrentTime(date);
+    }
+
+    function addMinutes(date, minutes) {
+      return new Date(date.getTime() + minutes * 60000);
+    }
+
+    function buildMockActivities(project) {
+      const now = new Date();
+      const studentId = String(project.studentId || "").toUpperCase();
+      const activities = [
+        {
+          time: formatMinute(addMinutes(now, -6)),
+          studentId,
+          title: "프로젝트 상세 확인",
+          detail: `${project.projectName} 목업 화면 열람`
+        },
+        {
+          time: formatMinute(now),
+          studentId,
+          title: "진행단계",
+          detail: `기획 → ${project.progress}`
+        }
+      ];
+
+      if (project.professorFeedback) {
+        activities.push({
+          time: formatMinute(now),
+          studentId,
+          title: "피드백",
+          detail: project.professorFeedback
+        });
+      }
+
+      return activities;
+    }
+
+    function openActivityModal(project) {
+      document.getElementById("activityModalTitle").textContent = `${project.studentId} 활동`;
+      activityList.innerHTML = buildMockActivities(project).map((activity) => `
+        <div class="activity-item">
+          <div class="activity-time">${escapeHtml(activity.time)}</div>
+          <div class="activity-id">${escapeHtml(activity.studentId)}</div>
+          <div class="activity-title">${escapeHtml(activity.title)}</div>
+          <div class="activity-detail">${escapeHtml(activity.detail)}</div>
+        </div>
+      `).join("");
+      activityModal.classList.add("open");
+    }
+
+    function closeActivityModal() {
+      activityModal.classList.remove("open");
+    }
+
+    async function readJson(response) {
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || data.error || "요청을 처리하지 못했습니다.");
+      }
+
+      return data;
+    }
+
+    function fillForm(project) {
+      projectIdInput.value = project.id;
+      studentIdInput.value = project.studentId;
+      projectNameInput.value = project.projectName;
+      progressInput.value = project.progress;
+      professorFeedbackInput.value = project.professorFeedback || "";
+    }
+
+    function resetForm() {
+      projectIdInput.value = "";
+      projectForm.reset();
+    }
+
+    async function loadProjects() {
+      try {
+        const response = await fetch(getProjectsApiUrl());
+        const data = await readJson(response);
+        latestProjects = data.projects;
+
+        projectsTable.innerHTML = data.projects.map((project, index) => `
+          <tr data-index="${index}">
+            <td><button class="student-id-button" type="button" data-action="activity">${escapeHtml(project.studentId)}</button></td>
+            <td>
+              <div class="project-cell">
+                <strong>${escapeHtml(project.projectName)}</strong>
+                <span>진행상황: ${escapeHtml(project.progress)}</span>
+              </div>
+            </td>
+            <td class="feedback-cell">${project.latestComment ? escapeHtml(project.latestComment) : "-"}</td>
+            <td>
+              <div class="row-actions">
+                <button class="ghost-button small-button" type="button" data-action="edit">불러오기</button>
+                <button class="delete-button small-button" type="button" data-action="delete">삭제</button>
+              </div>
+            </td>
+          </tr>
+        `).join("");
+
+        message.textContent = `${data.projects.length}개 프로젝트 표시 중`;
+      } catch (error) {
+        message.textContent = `오류: ${error.message}`;
+      }
+    }
+
+    projectForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      const payload = {
+        studentId: studentIdInput.value,
+        projectName: projectNameInput.value,
+        progress: progressInput.value,
+        professorFeedback: professorFeedbackInput.value
+      };
+
+      try {
+        const projectId = projectIdInput.value.trim();
+        const response = await fetch(projectId ? `${getProjectsApiUrl()}/${projectId}` : getProjectsApiUrl(), {
+          method: projectId ? "PUT" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await readJson(response);
+        message.textContent = `${data.project.studentId} / ${data.project.projectName} 저장 완료`;
+        resetForm();
+        await loadProjects();
+      } catch (error) {
+        message.textContent = `오류: ${error.message}`;
+      }
+    });
+
+    deleteButton.addEventListener("click", async () => {
+      const projectId = projectIdInput.value.trim();
+
+      if (!projectId) {
+        message.textContent = "삭제할 프로젝트를 먼저 불러오세요.";
+        return;
+      }
+
+      try {
+        await readJson(await fetch(`${getProjectsApiUrl()}/${projectId}`, { method: "DELETE" }));
+        message.textContent = "프로젝트 삭제 완료";
+        resetForm();
+        await loadProjects();
+      } catch (error) {
+        message.textContent = `오류: ${error.message}`;
+      }
+    });
+
+    resetButton.addEventListener("click", resetForm);
+
+    projectsTable.addEventListener("click", async (event) => {
+      const button = event.target.closest("button");
+      const row = event.target.closest("tr");
+      if (!button || !row) return;
+
+      const project = latestProjects[Number(row.dataset.index)];
+      if (!project) return;
+
+      if (button.dataset.action === "edit") {
+        fillForm(project);
+        message.textContent = `${project.studentId} / ${project.projectName} 불러옴`;
+      }
+
+      if (button.dataset.action === "delete") {
+        try {
+          await readJson(await fetch(`${getProjectsApiUrl()}/${project.id}`, { method: "DELETE" }));
+          message.textContent = `${project.projectName} 삭제 완료`;
+          if (projectIdInput.value === String(project.id)) {
+            resetForm();
+          }
+          await loadProjects();
+        } catch (error) {
+          message.textContent = `오류: ${error.message}`;
+        }
+      }
+
+      if (button.dataset.action === "activity") {
+        openActivityModal(project);
+      }
+    });
+
+    activityModal.addEventListener("click", (event) => {
+      if (event.target === activityModal) {
+        closeActivityModal();
+      }
+    });
+
+    closeActivityModalButton.addEventListener("click", closeActivityModal);
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        closeActivityModal();
+      }
+    });
+
+    loadProjects();
+    updateDeadlineClock();
+    setInterval(updateDeadlineClock, 1000);
+  </script>
+</body>
+</html>
