@@ -24,11 +24,6 @@
       </div>
     </section>
 
-    <section class="schedule-panel">
-      <h2>추천 일정</h2>
-      <div class="schedule-list" id="scheduleList"></div>
-    </section>
-
     <p id="message">불러오는 중...</p>
 
     <div class="table-wrap">
@@ -49,6 +44,10 @@
     <div class="modal-body modal-wide" role="dialog" aria-modal="true" aria-labelledby="userModalTitle">
       <h2 id="userModalTitle">사용자 프로젝트</h2>
       <div class="student-id" id="userModalStudentId">-</div>
+      <section class="detail-block">
+        <h3>추천 일정</h3>
+        <div class="schedule-list modal-schedule-list" id="userScheduleList"></div>
+      </section>
       <section class="detail-block">
         <h3>프로젝트 목록</h3>
         <div class="project-list" id="userProjectList"></div>
@@ -102,7 +101,7 @@
     const closeModalButton = document.getElementById("closeModalButton");
     const commentForm = document.getElementById("commentForm");
     const commentInput = document.getElementById("commentInput");
-    const scheduleList = document.getElementById("scheduleList");
+    const userScheduleList = document.getElementById("userScheduleList");
     let latestProjects = [];
     let latestUsers = [];
     let activeProjectId = null;
@@ -215,7 +214,7 @@
     }
 
     function renderRecommendedSchedule(now = new Date()) {
-      scheduleList.innerHTML = buildRecommendedSchedule(now, currentDeadline).map((item) => `
+      userScheduleList.innerHTML = buildRecommendedSchedule(now, currentDeadline).map((item) => `
         <article class="schedule-item">
           <strong>${escapeHtml(item.phase)}</strong>
           <span>${escapeHtml(item.dueDate)}까지</span>
@@ -342,6 +341,7 @@
 
     function openUserModal(user) {
       userModalStudentId.textContent = user.studentId;
+      renderRecommendedSchedule();
       userProjectList.innerHTML = user.projects.map((project) => `
         <button class="project-option" type="button" data-project-id="${project.id}">
           <strong>${escapeHtml(project.projectName)}</strong>
