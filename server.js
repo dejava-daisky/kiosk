@@ -60,6 +60,11 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
+    if (url.pathname === "/edit") {
+      await sendHtml(res, "edit.html");
+      return;
+    }
+
     if (url.pathname === "/admin" || url.pathname === "/admin.html") {
       await sendHtml(res, "admin.html");
       return;
