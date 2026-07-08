@@ -631,7 +631,7 @@
         });
         const data = await readJson(response);
         currentDeadline = data.settings.deadline;
-        message.textContent = `최종 마감일 저장 완료: ${currentDeadline}`;
+        message.textContent = `최종 마감일 저장 완료: ${currentDeadline} / 추천 일정 재검토 기준 갱신`;
         updateDeadlineClock();
       } catch (error) {
         message.textContent = `오류: ${error.message}`;
