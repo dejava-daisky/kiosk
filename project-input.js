@@ -49,13 +49,18 @@ function validateProjectInput(input) {
 }
 
 function validateProjectCommentInput(input) {
+  const author = String(input.author ?? "").trim();
   const comment = String(input.comment ?? "").trim();
+
+  if (!author) {
+    return { ok: false, error: "작성자를 입력하세요." };
+  }
 
   if (!comment) {
     return { ok: false, error: "코멘트를 입력하세요." };
   }
 
-  return { ok: true, comment };
+  return { ok: true, comment: { author, comment } };
 }
 
 module.exports = {

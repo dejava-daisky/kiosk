@@ -55,19 +55,32 @@ test("rejects blank project name", () => {
   );
 });
 
-test("accepts public comment input", () => {
+test("accepts public comment input with author", () => {
   assert.deepEqual(
-    validateProjectCommentInput({ comment: "좋아요" }),
+    validateProjectCommentInput({ author: "kopo05", comment: "좋아요" }),
     {
       ok: true,
-      comment: "좋아요"
+      comment: {
+        author: "kopo05",
+        comment: "좋아요"
+      }
+    }
+  );
+});
+
+test("rejects blank author input", () => {
+  assert.deepEqual(
+    validateProjectCommentInput({ author: "   ", comment: "좋아요" }),
+    {
+      ok: false,
+      error: "작성자를 입력하세요."
     }
   );
 });
 
 test("rejects blank public comment input", () => {
   assert.deepEqual(
-    validateProjectCommentInput({ comment: "   " }),
+    validateProjectCommentInput({ author: "kopo05", comment: "   " }),
     {
       ok: false,
       error: "코멘트를 입력하세요."

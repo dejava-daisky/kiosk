@@ -81,6 +81,7 @@
         <h3>코멘트</h3>
         <div class="comment-list" id="modalCommentList"></div>
         <form id="commentForm" class="comment-form">
+          <input id="commentAuthorInput" type="text" placeholder="작성자 (예: kopo05)">
           <textarea id="commentInput" rows="3" placeholder="누구나 코멘트를 남길 수 있습니다"></textarea>
           <button type="submit">코멘트 등록</button>
         </form>
@@ -122,6 +123,7 @@
     const modalCommentList = document.getElementById("modalCommentList");
     const closeModalButton = document.getElementById("closeModalButton");
     const commentForm = document.getElementById("commentForm");
+    const commentAuthorInput = document.getElementById("commentAuthorInput");
     const commentInput = document.getElementById("commentInput");
     const projectScheduleList = document.getElementById("projectScheduleList");
     let latestProjects = [];
@@ -352,7 +354,10 @@
 
       modalCommentList.innerHTML = comments.map((comment) => `
         <article class="comment-card">
-          <div class="comment-time">${escapeHtml(formatCommentTime(comment.createdAt))}</div>
+          <div class="comment-meta">
+            <span class="comment-time">${escapeHtml(formatCommentTime(comment.createdAt))}</span>
+            <span class="comment-author">${escapeHtml(comment.author || "anonymous")}</span>
+          </div>
           <div class="comment-copy">${escapeHtml(comment.comment)}</div>
         </article>
       `).join("");
@@ -372,6 +377,7 @@
       deploymentUrlText.textContent = activeDeploymentUrl;
       modalProfessorFeedback.textContent = project.professorFeedback || "아직 입력된 피드백이 없습니다.";
       renderComments(project.comments);
+      commentAuthorInput.value = "";
       commentInput.value = "";
       modal.classList.add("open");
     }
@@ -464,7 +470,10 @@
         await readJson(await fetch(`${getProjectsApiUrl()}/${activeProjectId}/comments`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ comment: commentInput.value })
+          body: JSON.stringify({
+            author: commentAuthorInput.value,
+            comment: commentInput.value
+          })
         }));
 
         await openProjectModal(activeProjectId);

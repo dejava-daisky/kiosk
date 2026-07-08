@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS student_project (
 CREATE TABLE IF NOT EXISTS project_comment (
     id INT AUTO_INCREMENT PRIMARY KEY,
     project_id INT NOT NULL,
+    comment_author VARCHAR(80) NOT NULL,
     comment_text TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_project_comment_project

@@ -62,6 +62,7 @@ async function ensureProjectTables(connection) {
     CREATE TABLE IF NOT EXISTS project_comment (
       id INT AUTO_INCREMENT PRIMARY KEY,
       project_id INT NOT NULL,
+      comment_author VARCHAR(80) NOT NULL,
       comment_text TEXT NOT NULL,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       CONSTRAINT fk_project_comment_project
@@ -69,6 +70,13 @@ async function ensureProjectTables(connection) {
         ON DELETE CASCADE
     )
   `);
+
+  await ensureTableColumn(
+    connection,
+    "project_comment",
+    "comment_author",
+    "comment_author VARCHAR(80) NOT NULL DEFAULT 'anonymous' AFTER project_id"
+  );
 }
 
 async function ensureSettingTable(connection) {
@@ -185,7 +193,7 @@ async function fetchProjectById(projectId) {
 
     const [comments] = await connection.execute(
       `
-        SELECT id, comment_text, created_at
+        SELECT id, comment_author, comment_text, created_at
         FROM project_comment
         WHERE project_id = ?
         ORDER BY created_at ASC, id ASC
@@ -202,6 +210,7 @@ async function fetchProjectById(projectId) {
       professorFeedback: String(rows[0].professor_feedback ?? ""),
       comments: comments.map((comment) => ({
         id: Number(comment.id),
+        author: String(comment.comment_author ?? ""),
         comment: String(comment.comment_text ?? ""),
         createdAt: new Date(comment.created_at).toISOString()
       }))
@@ -288,17 +297,18 @@ async function addProjectComment(projectId, comment) {
   try {
     await ensureProjectTables(connection);
     const [result] = await connection.execute(
-      "INSERT INTO project_comment (project_id, comment_text) VALUES (?, ?)",
-      [projectId, comment]
+      "INSERT INTO project_comment (project_id, comment_author, comment_text) VALUES (?, ?, ?)",
+      [projectId, comment.author, comment.comment]
     );
 
     const [rows] = await connection.execute(
-      "SELECT id, comment_text, created_at FROM project_comment WHERE id = ?",
+      "SELECT id, comment_author, comment_text, created_at FROM project_comment WHERE id = ?",
       [result.insertId]
     );
 
     return {
       id: Number(rows[0].id),
+      author: String(rows[0].comment_author ?? ""),
       comment: String(rows[0].comment_text ?? ""),
       createdAt: new Date(rows[0].created_at).toISOString()
     };

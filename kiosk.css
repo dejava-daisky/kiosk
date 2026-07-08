@@ -364,8 +364,21 @@ tr:last-child td {
   border-radius: 7px;
 }
 
+.comment-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
 .comment-time {
   color: var(--muted);
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.comment-author {
+  color: var(--blue);
   font-size: 14px;
   font-weight: 900;
 }
@@ -383,14 +396,22 @@ tr:last-child td {
   margin-top: 14px;
 }
 
+.comment-form input,
 .comment-form textarea {
   width: 100%;
-  min-height: 92px;
   padding: 12px;
   border: 1px solid #becad7;
   border-radius: 7px;
-  resize: vertical;
   font: inherit;
+}
+
+.comment-form input {
+  min-height: 46px;
+}
+
+.comment-form textarea {
+  min-height: 92px;
+  resize: vertical;
 }
 
 .preview-button {
