@@ -1,0 +1,190 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: kiosk
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: kiosk-secret
+  namespace: kiosk
+type: Opaque
+stringData:
+  mysql-root-password: kioskpass
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: kiosk-db-data
+  namespace: kiosk
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: kiosk-screenshots
+  namespace: kiosk
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kiosk-db
+  namespace: kiosk
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kiosk-db
+  template:
+    metadata:
+      labels:
+        app: kiosk-db
+    spec:
+      containers:
+        - name: mysql
+          image: mysql:8.0
+          ports:
+            - containerPort: 3306
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: kiosk-secret
+                  key: mysql-root-password
+            - name: MYSQL_DATABASE
+              value: kiosk
+          volumeMounts:
+            - name: db-data
+              mountPath: /var/lib/mysql
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - mysqladmin ping -h 127.0.0.1 -uroot -p"$MYSQL_ROOT_PASSWORD"
+            initialDelaySeconds: 20
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 20
+      volumes:
+        - name: db-data
+          persistentVolumeClaim:
+            claimName: kiosk-db-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kiosk-db
+  namespace: kiosk
+spec:
+  selector:
+    app: kiosk-db
+  ports:
+    - name: mysql
+      port: 3306
+      targetPort: 3306
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kiosk-app
+  namespace: kiosk
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kiosk-app
+  template:
+    metadata:
+      labels:
+        app: kiosk-app
+    spec:
+      containers:
+        - name: kiosk-app
+          image: tejawa/kiosk:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 703
+          env:
+            - name: PORT
+              value: "703"
+            - name: DB_HOST
+              value: kiosk-db
+            - name: DB_PORT
+              value: "3306"
+            - name: DB_USER
+              value: root
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: kiosk-secret
+                  key: mysql-root-password
+            - name: DB_NAME
+              value: kiosk
+          volumeMounts:
+            - name: screenshots
+              mountPath: /app/public/screenshots
+          readinessProbe:
+            httpGet:
+              path: /kiosk
+              port: 703
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 12
+      volumes:
+        - name: screenshots
+          persistentVolumeClaim:
+            claimName: kiosk-screenshots
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kiosk-app
+  namespace: kiosk
+spec:
+  selector:
+    app: kiosk-app
+  ports:
+    - name: http
+      port: 703
+      targetPort: 703
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: kiosk-ingress
+  namespace: kiosk
+spec:
+  rules:
+    - host: www.kiosk.copoctc.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: kiosk-app
+                port:
+                  number: 703
+    - host: kiosk.copoctc.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: kiosk-app
+                port:
+                  number: 703
