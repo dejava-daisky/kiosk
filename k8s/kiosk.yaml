@@ -115,10 +115,10 @@ spec:
           image: tejawa/kiosk:latest
           imagePullPolicy: Always
           ports:
-            - containerPort: 703
+            - containerPort: 7003
           env:
             - name: PORT
-              value: "703"
+              value: "7003"
             - name: DB_HOST
               value: kiosk-db
             - name: DB_PORT
@@ -138,7 +138,7 @@ spec:
           readinessProbe:
             httpGet:
               path: /kiosk
-              port: 703
+              port: 7003
             initialDelaySeconds: 10
             periodSeconds: 5
             timeoutSeconds: 3
@@ -158,8 +158,8 @@ spec:
     app: kiosk-app
   ports:
     - name: http
-      port: 703
-      targetPort: 703
+      port: 7003
+      targetPort: 7003
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
@@ -177,7 +177,7 @@ spec:
               service:
                 name: kiosk-app
                 port:
-                  number: 703
+                  number: 7003
     - host: kiosk.copoctc.com
       http:
         paths:
@@ -187,4 +187,4 @@ spec:
               service:
                 name: kiosk-app
                 port:
-                  number: 703
+                  number: 7003
